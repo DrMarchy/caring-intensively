@@ -1115,12 +1115,19 @@ function loadDemo() {
   const d = makeDemoData();
   S.patients = d.patients; S.days = d.days; S.ecmo = d.ecmo; S.cpd = d.cpd;
   S.settings.locations = Array.from(new Set(d.locations.concat(S.settings.locations)));
+  // Sample hospitals the user doesn't already have; flagged so Clear sample data removes them again
+  d.hospitals.forEach((h) => { if (!S.settings.hospitals.some((x) => x.id === h.id || x.name === h.name)) S.settings.hospitals.push(Object.assign({}, h, { demo: true })); });
+  const byName = (n) => (S.settings.hospitals.find((x) => x.name === n) || {}).id;
+  S.days.forEach((x) => { if (x.loc && !S.settings.hospitals.some((h) => h.id === x.loc.hospital)) x.loc.hospital = byName(d.hospitals.find((h) => h.id === x.loc.hospital).name); });
+  S.patients.forEach((p) => { if (!S.settings.hospitals.some((h) => h.id === p.hospital)) p.hospital = byName(d.hospitals.find((h) => h.id === p.hospital).name); });
   S.settings.demo = true; S.settings.onboarded = true;
   S.settings.emails = Object.assign({}, S.settings.emails);
 }
 async function clearAll(keepSettings = true) {
   S.patients = []; S.days = []; S.ecmo = []; S.cpd = [];
   S.settings.demo = false;
+  S.settings.hospitals = S.settings.hospitals.filter((h) => !h.demo);
+  if (!S.settings.hospitals.find((h) => h.id === S.settings.defaultHospital)) S.settings.defaultHospital = (S.settings.hospitals[0] || {}).id || '';
   if (!keepSettings) S.settings = Object.assign(defaultSettings(), { onboarded: false });
   await Store.clear('photos');
   Object.keys(photoCache).forEach((k) => delete photoCache[k]);
