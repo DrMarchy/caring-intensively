@@ -1685,7 +1685,7 @@ async function buildFundReport(fund, a, b, opts = {}) {
   });
   if (!hids.length) doc.para('Nothing recorded in this period.', { color: SOFT });
   const pages = doc.finish(fund + ' summary prepared with Caring Intensively.');
-  if (opts.sheets) {
+  if (opts.sheets !== false) {
     for (const pid of pids) { const p = patientById(pid); if (p) pages.push(...await drawPatientSheets(p, days.filter((d) => d.pid === pid))); }
   }
   return { title, pages, filename: fund + ' billing ' + fileRange(a, b), csv: billingCSV(days), days };
@@ -1995,7 +1995,7 @@ const UI = {
   tab: 'home', billSeg: 'active',
   hist: { q: '', range: '30d', fund: '', status: '', group: 'date', limit: 120 },
   statsRange: '12m', ecmoQ: '', ecmoFilter: '', cpdYear: Number(today().slice(0, 4)), cpdQ: '',
-  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fund: '', fundRange: 'month', fundSheets: false, ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
+  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fund: '', fundRange: 'month', ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
 };
 const TABS = [['home', 'Home', 'home', 'bill'], ['billing', 'Patients', 'bed', 'bill'], ['ecmo', 'ECMO', 'ecmo', 'ecmo'], ['cpd', 'CPD', 'cpd', 'cpd'], ['reports', 'Reports', 'doc', 'bill']];
 
@@ -2867,11 +2867,11 @@ function viewReports() {
     '<button class="btn block mt" data-act="repBill">Preview</button></div>';
   s += '<div class="sec"><h2>Billing</h2></div>';
   s += repPatientCard(R);
-  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, grouped by hospital, for your secretary to lodge.</p>' +
+  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, grouped by hospital, then a form sheet for each patient, for your secretary to lodge.</p>' +
     (fundsSorted.length ? '<select data-ch="repFund" aria-label="Health fund">' + fundsSorted.map((f) => '<option' + (R.fund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
       '<div class="chips mt">' + ['month', 'lastmonth', '90d', 'fy', 'custom'].map((k) => chip(RANGE_LABELS[k], R.fundRange === k, 'repSet', 'data-k="fundRange" data-v="' + k + '"')).join('') + '</div>' +
       (R.fundRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
-      '<div class="toggle"><div class="main">Include a form sheet for each patient</div><button class="switch' + (R.fundSheets ? ' on' : '') + '" data-act="repFlip" data-k="fundSheets" aria-label="Include form sheets"></button></div><button class="btn block" data-act="repFund">Preview</button>'
+      '<button class="btn block mt" data-act="repFund">Preview</button>'
       : '<p class="muted small">No patients recorded yet.</p>') + '</div>';
   s += '<div class="sec"><h2>ECMO</h2></div><div class="card" data-mod="ecmo"><h3>Accreditation record</h3><p>Counts against your targets, cannulation breakdown and a dated log with a verification block.</p><div class="chips">' +
     [['period', ECMO_PERIOD_LABELS[S.settings.ecmoPeriod.mode]], ['year', 'This calendar year'], ['all', 'All records'], ['custom', 'Custom dates']].filter((v, i, arr) => arr.findIndex((x) => x[1] === v[1]) === i).map(([k, l]) => chip(l, R.ecmoMode === k, 'repSet', 'data-k="ecmoMode" data-v="' + k + '"')).join('') + '</div>' +
@@ -2942,7 +2942,7 @@ async function openReport(kind, params = {}) {
       rep = await buildSecretaryReport(pd, { title: 'Billing for ' + patientName(p), summary: false, fileLabel: patientName(p) });
       rep.meta = fmtRange(rep.range[0], rep.range[1]); rep.patientName = patientName(p);
     }
-    else if (kind === 'fund') { rep = await buildFundReport(params.fund, params.a, params.b, { sheets: params.sheets }); rep.meta = fmtRange(params.a, params.b); }
+    else if (kind === 'fund') { rep = await buildFundReport(params.fund, params.a, params.b); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'ecmo') { rep = buildEcmoReport(params.a, params.b); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'cpd') { rep = buildCpdReport(params.year); rep.meta = String(params.year); }
     pv.rep = rep; pv.loading = false;
@@ -3234,7 +3234,7 @@ const ACT = {
   repFlip: (el) => { UI.rep[el.dataset.k] = !UI.rep[el.dataset.k]; render(); },
   repUnsent: () => { const days = S.days.filter((d) => !d.sent); if (!days.length) { toast('Everything has been sent'); return; } openReport('secretary', { days, title: 'Billing for processing' }); },
   repBill: () => { const R = UI.rep; if (R.billRange === 'day') return ACT.repDay(); const [a, b] = R.billRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.billRange); const days = S.days.filter((d) => d.date >= a && d.date <= b); if (!days.length) { toast('No billing between those dates'); return; } openReport('secretary', { days, range: [a, b], title: 'Billing for processing' }); },
-  repFund: () => { const R = UI.rep; const [a, b] = R.fundRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.fundRange); openReport('fund', { fund: R.fund, a, b, sheets: R.fundSheets }); },
+  repFund: () => { const R = UI.rep; const [a, b] = R.fundRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.fundRange); openReport('fund', { fund: R.fund, a, b }); },
   openReport: (el) => {
     const kind = el.dataset.kind;
     if (kind === 'ecmo') { const m = UI.rep.ecmoMode; const [a, b] = m === 'custom' ? [UI.rep.ecmoA, UI.rep.ecmoB] : m === 'year' ? rangeFor('year') : m === 'all' ? [S.ecmo.map((e) => e.date).sort()[0] || today(), today()] : ecmoRange(); openReport('ecmo', { a, b }); }

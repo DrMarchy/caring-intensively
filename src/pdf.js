@@ -471,7 +471,7 @@ async function buildFundReport(fund, a, b, opts = {}) {
   });
   if (!hids.length) doc.para('Nothing recorded in this period.', { color: SOFT });
   const pages = doc.finish(fund + ' summary prepared with Caring Intensively.');
-  if (opts.sheets) {
+  if (opts.sheets !== false) {
     for (const pid of pids) { const p = patientById(pid); if (p) pages.push(...await drawPatientSheets(p, days.filter((d) => d.pid === pid))); }
   }
   return { title, pages, filename: fund + ' billing ' + fileRange(a, b), csv: billingCSV(days), days };
