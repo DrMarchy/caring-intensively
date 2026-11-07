@@ -50,4 +50,5 @@ icon(180).convert('RGB').save(os.path.join(DIST, 'icon-180.png'))
 icon(192).save(os.path.join(DIST, 'icon-192.png'))
 icon(512).save(os.path.join(DIST, 'icon-512.png'))
 icon(512, maskable=True).save(os.path.join(DIST, 'icon-512-maskable.png'))
+open(os.path.join(DIST, '.nojekyll'), 'w').close()  # serve docs/ as-is on GitHub Pages
 print('built', os.path.getsize(os.path.join(DIST, 'index.html')) // 1024, 'KB')
