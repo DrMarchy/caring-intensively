@@ -889,9 +889,6 @@ function saveCpd() {
 /* ---------------- Reports ---------------- */
 function viewReports() {
   const R = UI.rep;
-  const unsent = S.days.filter((d) => !d.sent);
-  const upids = new Set(unsent.map((d) => d.pid));
-  const oldest = unsent.map((d) => d.date).sort()[0];
   const funds = Array.from(new Set(S.patients.map((p) => p.fund).filter(Boolean)));
   const fundsSorted = fundsRanked().filter((f) => funds.includes(f));
   if (!R.fund && fundsSorted.length) R.fund = fundsSorted[0];
@@ -905,7 +902,6 @@ function viewReports() {
     (R.billRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
     '<button class="btn block mt" data-act="repBill">Preview</button></div>';
   s += '<div class="sec"><h2>Billing</h2></div>';
-  s += '<div class="card" data-mod="bill"><h3>Not yet sent to your secretary</h3><p>' + (unsent.length ? plural(unsent.length, 'patient-day') + ' for ' + plural(upids.size, 'patient') + ', since ' + esc(fmtDate(oldest)) + '.' : 'Everything has been sent.') + '</p><button class="btn block" data-act="repUnsent"' + (unsent.length ? '' : ' disabled') + '>Preview billing sheets</button></div>';
   s += repPatientCard(R);
   s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, grouped by hospital, for your secretary to lodge.</p>' +
     (fundsSorted.length ? '<select data-ch="repFund" aria-label="Health fund">' + fundsSorted.map((f) => '<option' + (R.fund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +

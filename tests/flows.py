@@ -61,7 +61,7 @@ async def main():
         # Reports
         await pg.click('#tabs [data-tab="reports"]'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='tests/shots/40_reports.png', full_page=True)
-        for kind, sel in [('unsent', '[data-act="repUnsent"]'), ('ecmo', '.card [data-act="openReport"][data-kind="ecmo"]'), ('cpd', '.card [data-act="openReport"][data-kind="cpd"]')]:
+        for kind, sel in [('range', '[data-act="repBill"]'), ('ecmo', '.card [data-act="openReport"][data-kind="ecmo"]'), ('cpd', '.card [data-act="openReport"][data-kind="cpd"]')]:
             await pg.click(sel); await pg.wait_for_timeout(2500)
             await shot('41_preview_' + kind)
             # Save PDF via download fallback
