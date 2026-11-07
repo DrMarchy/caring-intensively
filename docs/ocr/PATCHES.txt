@@ -1,0 +1,1 @@
+worker.min.js (tesseract.js 7.0.0): initialize() joined language objects by .data instead of .code; changed to .code so language data can be passed in directly.
