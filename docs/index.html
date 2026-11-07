@@ -2319,7 +2319,8 @@ function openPatient(pid) {
       '<div class="sec"><h2>Days of care</h2><div class="sp"></div><span class="small muted">' + plural(days.length, 'day') + (days.length ? ', about ' + fmtMoney(sum(days, dayFee)) : '') + '</span></div>' +
       (days.length ? '<div class="group">' + days.map((d, i) => '<div class="row tap" data-act="openDay" data-id="' + d.id + '"><div class="main"><div class="t">' + esc(fmtDate(d.date)) + '</div><div class="s">' + esc(locText(dayLoc(d))) + (days[i + 1] && !sameLoc(dayLoc(days[i + 1]), dayLoc(d)) ? ' (moved)' : '') + '</div>' + codesHTML(dayAllCodes(d)) + (d.note ? '<div class="s wrap">' + esc(d.note) + '</div>' : '') + '</div>' + (d.sent ? '<span class="pill ok">Sent</span>' : '<span class="pill warn">Not sent</span>') + '</div>').join('') + '</div>'
         : '<div class="group"><div class="empty">No billing recorded yet.</div></div>') +
-      '<button class="btn ghost block mt" data-act="patientReport" data-pid="' + pid + '">Billing sheet for a day or the whole stay</button>';
+      '<button class="btn ghost block mt" data-act="patientReport" data-pid="' + pid + '">Billing sheet for a day or the whole stay</button>' +
+      '<button class="btn danger block mt2" data-act="deletePatient" data-pid="' + pid + '">Delete patient</button>';
   }, { mod: 'bill' });
 }
 
