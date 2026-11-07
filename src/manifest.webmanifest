@@ -1,6 +1,6 @@
 {
-  "name": "Gill-Able: billing, ECMO and CPD",
-  "short_name": "Gill-Able",
+  "name": "Caring Intensively: billing, ECMO and CPD",
+  "short_name": "Caring Intensively",
   "description": "ICU billing, ECMO logbook and CICM CPD tracker for Dr Denzil Gill",
   "start_url": "./",
   "scope": "./",

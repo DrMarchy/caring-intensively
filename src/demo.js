@@ -1,4 +1,4 @@
-/* ===== Gill-Able: 12 months of realistic demo data ===== */
+/* ===== Caring Intensively: 12 months of realistic demo data ===== */
 
 function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 

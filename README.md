@@ -1,6 +1,6 @@
 # Caring Intensively
 
-Home of **Gill-Able**, a phone app for Dr Denzil Gill (intensivist) that handles three jobs:
+**Caring Intensively** is a phone app for Dr Denzil Gill (intensivist) that handles three jobs:
 
 1. **Private ICU billing.** He photographs a patient label once, and the app reads the name, UR/MRN, health fund and referring doctor and asks him to confirm them. The patient stays on an active list, and he taps MBS items for each day of care. Each day records the hospital, ward and bed. Reports are laid out like his Wesley paper billing form, and he can email them to his secretary.
 2. **ECMO logbook.** One-tap logging of cannulations, circuit changes, reviews, QA meetings, rounds, retrievals, consults and other ECMO events, with progress against accreditation targets and a report for credentialing.
@@ -39,7 +39,7 @@ The tests drive the app at `http://localhost:8765` with the `#demo` sample data 
 ## Releasing an update
 
 1. Change files in `src/`, run `python3 build.py`, and run the tests.
-2. Bump `CACHE` in `src/sw.js` (e.g. `gillable-v5`) so installed phones pick up the new version, then rebuild.
+2. Bump `CACHE` in `src/sw.js` (e.g. `gills-v4`) so installed phones pick up the new version, then rebuild.
 3. Commit and push to `main`. GitHub Pages republishes `docs/` within a minute or two, and Denzil's phone updates next time it opens online. His records are untouched.
 
 ## Installing on a phone

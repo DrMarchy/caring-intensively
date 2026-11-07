@@ -1,4 +1,4 @@
-/* ===== Gill-Able: reference data ===== */
+/* ===== Caring Intensively: reference data ===== */
 
 const SECTIONS = [
   { id: 'icu', name: 'ICU management' },

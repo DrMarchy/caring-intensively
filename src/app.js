@@ -1,4 +1,4 @@
-/* ===== Gill‑Able: interface ===== */
+/* ===== Caring Intensively: interface ===== */
 const SANDBOXED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const STANDALONE = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
@@ -190,7 +190,7 @@ function hbars(rows, max) {
 /* ---------------- Welcome ---------------- */
 function viewWelcome() {
   const h = S.settings.hospitals[0] || {};
-  return '<div class="welcome" data-mod="bill"><div class="mark">' + LOGO + '</div><h1>Gill‑Able</h1>' +
+  return '<div class="welcome" data-mod="bill"><div class="mark">' + LOGO + '</div><h1>Caring Intensively</h1>' +
     '<p class="lead">ICU billing, an ECMO logbook and CICM CPD tracking for ' + esc(S.settings.name) + ', in your pocket.</p>' +
     '<div class="field"><label for="w-name">Your name as it appears on billing forms</label><input id="w-name" type="text" data-in="set" data-k="name" value="' + esc(S.settings.name) + '"></div>' +
     '<div class="two"><div class="field"><label for="w-h">Hospital</label><input id="w-h" type="text" data-in="hosp" data-i="0" data-k="name" value="' + esc(h.name || '') + '"></div>' +
@@ -207,7 +207,7 @@ function viewHome() {
   const first = (S.settings.name || '').replace(/^Dr\.?\s+/i, '').split(' ')[0] || 'there';
   const dateStr = DOW[now.getDay()] + 'day'.replace('day', '') ;
   const full = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()] + ' ' + now.getDate() + ' ' + MONTH_FULL[now.getMonth()];
-  return '<div class="topbar"><div class="brand">' + LOGO + '<span class="wordmark">Gill‑Able</span></div><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>' +
+  return '<div class="topbar"><div class="brand">' + LOGO + '<span class="wordmark">Caring Intensively</span></div><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>' +
     '<div class="greet"><div class="d">' + full + '</div><div class="h">' + greet + ', ' + esc(first) + '</div></div>' +
     banners() + monitorPanel() + toBillToday() +
     '<div class="sec"><h2>Log something</h2></div><div class="actions">' +
@@ -219,8 +219,8 @@ function viewHome() {
 }
 function banners() {
   let s = '';
-  if (S.settings.demo) s += '<div class="banner demo"><div class="main"><b>Sample data.</b> This is 12 months of made-up records to show what Gill‑Able looks like in use.</div><button class="btn sm ghost" data-act="clearDemo">Clear</button></div>';
-  if (!STANDALONE && !SANDBOXED && !S.settings.installTipHidden) s += '<div class="banner"><div class="main">' + (IS_IOS ? 'Add Gill‑Able to your Home Screen: tap Share, then <b>Add to Home Screen</b>. It opens like an app and keeps your data safe from Safari clean-ups.' : 'Install Gill‑Able from your browser menu (Add to Home screen) so it opens like an app.') + '</div><button class="xbtn" data-act="hideInstall" aria-label="Dismiss">' + svg(I.x, 2.2) + '</button></div>';
+  if (S.settings.demo) s += '<div class="banner demo"><div class="main"><b>Sample data.</b> This is 12 months of made-up records to show what Caring Intensively looks like in use.</div><button class="btn sm ghost" data-act="clearDemo">Clear</button></div>';
+  if (!STANDALONE && !SANDBOXED && !S.settings.installTipHidden) s += '<div class="banner"><div class="main">' + (IS_IOS ? 'Add Caring Intensively to your Home Screen: tap Share, then <b>Add to Home Screen</b>. It opens like an app and keeps your data safe from Safari clean-ups.' : 'Install Caring Intensively from your browser menu (Add to Home screen) so it opens like an app.') + '</div><button class="xbtn" data-act="hideInstall" aria-label="Dismiss">' + svg(I.x, 2.2) + '</button></div>';
   return s;
 }
 function monitorPanel() {
@@ -1069,13 +1069,13 @@ function settingsHTML() {
     '<div class="two">' + ECMO_TYPES.map((t) => '<div class="field"><label>' + esc(t.name) + '</label><input type="number" min="0" inputmode="numeric" data-in="ecmoT" data-k="' + t.id + '" value="' + esc(st.ecmoTargets[t.id]) + '"></div>').join('') + '</div><p class="note">Starting targets only. Set them to your unit’s credentialing requirements; 0 means no target.</p></div>';
   s += sec('cpd', 'CPD requirements') + '<div class="card" data-mod="cpd"><div class="two">' + [['total', 'Total hours a year'], ['ea', 'Educational activities'], ['rp', 'Reviewing performance'], ['mo', 'Measuring outcomes'], ['rpmo', 'Reviewing + measuring combined']].map(([k, l]) => '<div class="field"><label>' + l + '</label><input type="number" step="0.5" min="0" inputmode="decimal" data-in="cpdT" data-k="' + k + '" value="' + esc(st.cpdTarget[k]) + '"></div>').join('') + '</div>' +
     '<div class="two"><div class="field"><label>SHLR triennium starts</label><input type="number" data-in="shlr" data-k="0" value="' + st.shlrTriennium[0] + '"></div><div class="field"><label>SHLR triennium ends</label><input type="number" data-in="shlr" data-k="1" value="' + st.shlrTriennium[1] + '"></div></div><p class="note">Defaults follow the CICM CPD Program for 2026: 50 hours, at least 12.5 educational, 25 across reviewing performance and measuring outcomes (at least 5 each), a PDP, and one activity for each program-level requirement.</p></div>';
-  s += sec('ocr', 'Reading patient labels') + '<div class="card"><p>After you photograph a label, Gill‑Able reads the name, UR, health fund and referring doctor and fills them in for you to check. It runs on this phone and the photo never leaves it. Run the test once on Wi-Fi to download the reader (about 7 MB) so it also works offline.</p><div id="ocrTest"></div><button class="btn ghost block" data-act="ocrTest">Test the label reader</button></div>';
-  s += sec('install', 'Install on your phone') + '<div class="card"><ul class="cap-list"><li>iPhone: open Gill‑Able in Safari, tap Share, then Add to Home Screen.</li><li>Android: open in Chrome, tap the menu, then Add to Home screen.</li><li>Once installed, Gill‑Able works offline and opens like any other app.</li></ul></div>';
+  s += sec('ocr', 'Reading patient labels') + '<div class="card"><p>After you photograph a label, Caring Intensively reads the name, UR, health fund and referring doctor and fills them in for you to check. It runs on this phone and the photo never leaves it. Run the test once on Wi-Fi to download the reader (about 7 MB) so it also works offline.</p><div id="ocrTest"></div><button class="btn ghost block" data-act="ocrTest">Test the label reader</button></div>';
+  s += sec('install', 'Install on your phone') + '<div class="card"><ul class="cap-list"><li>iPhone: open Caring Intensively in Safari, tap Share, then Add to Home Screen.</li><li>Android: open in Chrome, tap the menu, then Add to Home screen.</li><li>Once installed, Caring Intensively works offline and opens like any other app.</li></ul></div>';
   s += sec('data', 'Your data') + '<div class="card"><p>Records and photos are stored only on this phone, in this browser. ' + (Store.ok ? 'Storage is working.' : '<b>Storage is unavailable here, so changes won’t be kept after you close this page.</b>') + '</p>' +
     '<div class="btnrow"><button class="btn ghost" data-act="backup">Back up now</button><button class="btn ghost" data-act="restore">Restore a backup</button></div>' +
     (st.demo ? '<button class="btn ghost block mt" data-act="clearDemo">Clear sample data</button>' : '<button class="btn ghost block mt" data-act="loadDemo">Load 12 months of sample data</button>') +
     '<button class="btn danger block mt" data-act="wipe">Delete all data</button></div>';
-  s += '<p class="note mt2">Gill‑Able ' + APP_VERSION + '. Billing criteria summarised from MBS Online (schedule from 1 July 2026); CPD rules from the CICM CPD Program 2026. Check MBS Online and the CICM portal for the authoritative versions.</p>';
+  s += '<p class="note mt2">Caring Intensively ' + APP_VERSION + '. Billing criteria summarised from MBS Online (schedule from 1 July 2026); CPD rules from the CICM CPD Program 2026. Check MBS Online and the CICM portal for the authoritative versions.</p>';
   return s;
 }
 function openItemsPage() {
@@ -1100,7 +1100,7 @@ async function doBackup() {
   for (const k of await Store.keys('photos')) { const b = await Store.get('photos', k); if (b) photos[k] = b instanceof Blob ? await blobToDataURL(b) : b; }
   S.settings.lastBackup = new Date().toISOString();
   const data = { app: 'gills', version: 1, exported: S.settings.lastBackup, state: S, photos };
-  const file = new File([JSON.stringify(data)], 'Gill-Able backup ' + fmtDMY(today()).replace(/\//g, '-') + '.json', { type: 'application/json' });
+  const file = new File([JSON.stringify(data)], 'Caring Intensively backup ' + fmtDMY(today()).replace(/\//g, '-') + '.json', { type: 'application/json' });
   const r = await shareFile(file);
   if (r === 'shared' || r === 'downloaded' || r === 'preview-saved') { changed(); toast('Backup saved'); }
   else if (r !== 'blocked') S.settings.lastBackup = null;
@@ -1108,7 +1108,7 @@ async function doBackup() {
 async function doRestore(file) {
   try {
     const data = JSON.parse(await file.text());
-    if (data.app !== 'gills' || !data.state) throw new Error('That file isn’t a Gill‑Able backup.');
+    if (data.app !== 'gills' || !data.state) throw new Error('That file isn’t a Caring Intensively backup.');
     const ok = await confirmSheet({ title: 'Restore this backup?', text: 'This replaces everything on this phone with the backup from ' + fmtDate(String(data.exported || '').slice(0, 10), { year: true }) + '.', ok: 'Replace and restore', danger: true });
     if (!ok) return;
     await Store.clear('photos');
