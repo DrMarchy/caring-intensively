@@ -22,8 +22,9 @@ async def main():
             await pg.screenshot(path='tests/shots/b_' + name + '.png')
             await top.locator('[data-act="closePage"]').click(); await pg.wait_for_timeout(300)
         # one day (yesterday)
+        await pg.click('[data-act="repSet"][data-k="billRange"][data-v="day"]'); await pg.wait_for_timeout(200)
         await pg.click('[data-act="repDayStep"][data-v="-1"]'); await pg.wait_for_timeout(200)
-        await pg.click('[data-act="repDay"]'); await preview_and_save('day')
+        await pg.click('[data-act="repBill"]'); await preview_and_save('day')
         # one patient: search, pick, whole stay
         await pg.fill('input[data-in="repPQ"]', 'patel'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='tests/shots/b2_pick.png')

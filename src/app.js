@@ -900,16 +900,14 @@ function viewReports() {
   s += '<p class="note" style="margin-top:-6px">Every report opens as a preview first. Email it from there once you’ve checked it.</p>';
   s += '<div class="sec"><h2>Billing</h2></div>';
   s += '<div class="card" data-mod="bill"><h3>Not yet sent to your secretary</h3><p>' + (unsent.length ? plural(unsent.length, 'patient-day') + ' for ' + plural(upids.size, 'patient') + ', since ' + esc(fmtDate(oldest)) + '.' : 'Everything has been sent.') + '</p><button class="btn block" data-act="repUnsent"' + (unsent.length ? '' : ' disabled') + '>Preview billing sheets</button></div>';
-  const dayN = S.days.filter((d) => d.date === R.billDay);
-  s += '<div class="card" data-mod="bill"><h3>One day</h3><p>Everyone you billed on one day: a summary page, then each patient\u2019s sheet.</p>' +
-    '<div class="daynav"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' +
-    '<p class="small muted" style="margin:-4px 0 10px">' + esc(relDay(R.billDay)) + ': ' + (dayN.length ? plural(dayN.length, 'patient') + ' billed' : 'no billing recorded') + '.</p>' +
-    '<button class="btn block" data-act="repDay"' + (dayN.length ? '' : ' disabled') + '>Preview</button></div>';
   s += repPatientCard(R);
-  s += '<div class="card" data-mod="bill"><h3>Date range</h3><p>A summary page, then a sheet per patient laid out like your paper form.</p><div class="chips">' + ['week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
+  const dayN = S.days.filter((d) => d.date === R.billDay);
+  s += '<div class="card" data-mod="bill"><h3>Date range</h3><p>A summary page, then a sheet per patient laid out like your paper form.</p><div class="chips">' + ['day', 'week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(k === 'day' ? 'One day' : RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
+    (R.billRange === 'day' ? '<div class="daynav mt"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' +
+      '<p class="small muted" style="margin:-4px 0 0">' + esc(relDay(R.billDay)) + ': ' + (dayN.length ? plural(dayN.length, 'patient') + ' billed' : 'no billing recorded') + '.</p>' : '') +
     (R.billRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
     '<button class="btn block mt" data-act="repBill">Preview</button></div>';
-  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, for your secretary to lodge.</p>' +
+  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, grouped by hospital, for your secretary to lodge.</p>' +
     (fundsSorted.length ? '<select data-ch="repFund" aria-label="Health fund">' + fundsSorted.map((f) => '<option' + (R.fund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
       '<div class="chips mt">' + ['month', 'lastmonth', '90d', 'fy', 'custom'].map((k) => chip(RANGE_LABELS[k], R.fundRange === k, 'repSet', 'data-k="fundRange" data-v="' + k + '"')).join('') + '</div>' +
       (R.fundRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
@@ -1277,7 +1275,7 @@ const ACT = {
   repSet: (el) => { let v = el.dataset.v; if (el.dataset.num) v = Number(v); UI.rep[el.dataset.k] = v; render(); },
   repFlip: (el) => { UI.rep[el.dataset.k] = !UI.rep[el.dataset.k]; render(); },
   repUnsent: () => { const days = S.days.filter((d) => !d.sent); if (!days.length) { toast('Everything has been sent'); return; } openReport('secretary', { days, title: 'Billing for processing' }); },
-  repBill: () => { const R = UI.rep; const [a, b] = R.billRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.billRange); const days = S.days.filter((d) => d.date >= a && d.date <= b); if (!days.length) { toast('No billing between those dates'); return; } openReport('secretary', { days, range: [a, b], title: 'Billing for processing' }); },
+  repBill: () => { const R = UI.rep; if (R.billRange === 'day') return ACT.repDay(); const [a, b] = R.billRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.billRange); const days = S.days.filter((d) => d.date >= a && d.date <= b); if (!days.length) { toast('No billing between those dates'); return; } openReport('secretary', { days, range: [a, b], title: 'Billing for processing' }); },
   repFund: () => { const R = UI.rep; const [a, b] = R.fundRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.fundRange); openReport('fund', { fund: R.fund, a, b, sheets: R.fundSheets }); },
   openReport: (el) => {
     const kind = el.dataset.kind;

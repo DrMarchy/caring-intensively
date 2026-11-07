@@ -450,16 +450,26 @@ async function buildFundReport(fund, a, b, opts = {}) {
   doc.heading(title);
   doc.para(fmtRange(a, b) + '. Prepared ' + fmtDate(today(), { year: true }) + ' by ' + S.settings.name + '.', { color: SOFT });
   const pids = Array.from(new Set(days.map((d) => d.pid)));
-  doc.kv([['Health fund', fund], ['Patients', String(pids.length)], ['Patient-days', String(days.length)], ['Items', String(sum(days, (d) => dayAllCodes(d).length))]], 2);
-  doc.h2('Services by patient and date');
-  const rows = [];
-  pids.map(patientById).filter(Boolean).sort((p, q) => patientName(p).localeCompare(patientName(q))).forEach((p) => {
-    days.filter((d) => d.pid === p.id).forEach((d, i) => {
-      const l = dayLoc(d); const h = hospitalById(l.hospital);
-      rows.push([i === 0 ? { t: patientName(p) + (p.ur ? '\nUR ' + p.ur : ''), bold: true } : '', fmtDMY(d.date), (S.settings.hospitals.length > 1 ? h.name + '\n' : '') + (wardBedShort(l) || '–'), h.provider || '', dayAllCodes(d).join(', ')]);
+  doc.kv([['Health fund', fund], ['Hospitals', String(new Set(days.map((d) => hospitalById(dayLoc(d).hospital).id)).size)], ['Patients', String(pids.length)], ['Patient-days', String(days.length)], ['Items', String(sum(days, (d) => dayAllCodes(d).length))]], 2);
+  // One section per hospital: provider numbers are location-specific, so each is lodged separately
+  const hkey = (d) => hospitalById(dayLoc(d).hospital).id;
+  const hids = Array.from(new Set(days.map(hkey)));
+  const hospOrder = (h) => { const i = S.settings.hospitals.findIndex((x) => x.id === h); return i < 0 ? 1e4 : i; };
+  hids.sort((u, v) => hospOrder(u) - hospOrder(v));
+  hids.forEach((hid) => {
+    const h = hospitalById(hid); const hd = days.filter((d) => hkey(d) === hid);
+    const hp = Array.from(new Set(hd.map((d) => d.pid))).map(patientById).filter(Boolean).sort((p, q) => patientName(p).localeCompare(patientName(q)));
+    doc.h2(h.name + (h.provider ? ', provider no. ' + h.provider : ''));
+    doc.para(plural(hp.length, 'patient') + ', ' + plural(hd.length, 'patient-day') + ', ' + plural(sum(hd, (d) => dayAllCodes(d).length), 'item') + '.', { color: SOFT, size: 17 });
+    const rows = [];
+    hp.forEach((p) => {
+      hd.filter((d) => d.pid === p.id).forEach((d, i) => {
+        rows.push([i === 0 ? { t: patientName(p) + (p.ur ? '\nUR ' + p.ur : ''), bold: true } : '', fmtDMY(d.date), wardBedShort(dayLoc(d)) || '–', dayAllCodes(d).join(', ')]);
+      });
     });
+    doc.table([{ label: 'Patient', w: 0.27 }, { label: 'Date', w: 0.15 }, { label: 'Ward / bed', w: 0.18 }, { label: 'MBS items', w: 0.4 }], rows, { zebra: false });
   });
-  doc.table([{ label: 'Patient', w: 0.24 }, { label: 'Date', w: 0.13 }, { label: 'Ward / bed', w: 0.15 }, { label: 'Provider no.', w: 0.14 }, { label: 'MBS items', w: 0.34 }], rows, { zebra: false });
+  if (!hids.length) doc.para('Nothing recorded in this period.', { color: SOFT });
   const pages = doc.finish(fund + ' summary prepared with Caring Intensively.');
   if (opts.sheets) {
     for (const pid of pids) { const p = patientById(pid); if (p) pages.push(...await drawPatientSheets(p, days.filter((d) => d.pid === pid))); }
