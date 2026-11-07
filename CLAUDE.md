@@ -29,6 +29,7 @@ Caring Intensively is a phone-first PWA for Dr Denzil Gill, an intensivist at Th
 1. Edit `src/`, then run `python3 build.py`.
 2. Serve `docs/` on port 8765 and run the Playwright tests in `tests/` (see README).
 3. For anything users will see, bump `CACHE` in `src/sw.js` before release.
+   If you change the sample data in `demo.js`, also bump `DEMO_VERSION` so copies already showing sample data refresh.
 4. Commit both `src/` and the rebuilt `docs/`. Pages deploys `docs/` from `main`.
 
 Copy style: plain, sentence case, Australian spelling, no exclamation marks.

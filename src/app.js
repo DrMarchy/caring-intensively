@@ -31,7 +31,7 @@ const UI = {
   tab: 'home', billSeg: 'active',
   hist: { q: '', range: '30d', fund: '', status: '', group: 'date', limit: 120 },
   statsRange: '12m', ecmoQ: '', ecmoFilter: '', cpdYear: Number(today().slice(0, 4)), cpdQ: '',
-  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fund: '', fundRange: 'month', ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
+  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fHosp: '', fFund: '', fSent: 'all', ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
 };
 const TABS = [['home', 'Home', 'home', 'bill'], ['billing', 'Patients', 'bed', 'bill'], ['ecmo', 'ECMO', 'ecmo', 'ecmo'], ['cpd', 'CPD', 'cpd', 'cpd'], ['reports', 'Reports', 'doc', 'bill']];
 
@@ -887,28 +887,34 @@ function saveCpd() {
 }
 
 /* ---------------- Reports ---------------- */
+/* Billing days matching the Report generation filters */
+function repFiltered(R) {
+  const [a, b] = R.billRange === 'day' ? [R.billDay, R.billDay] : R.billRange === 'custom' ? [R.billA <= R.billB ? R.billA : R.billB, R.billA <= R.billB ? R.billB : R.billA] : rangeFor(R.billRange);
+  const inRange = S.days.filter((d) => d.date >= a && d.date <= b);
+  const fundOf = (d) => (patientById(d.pid) || {}).fund || '';
+  const funds = fundsRanked().filter((f) => inRange.some((d) => fundOf(d) === f)).concat(R.fFund && !inRange.some((d) => fundOf(d) === R.fFund) ? [R.fFund] : []);
+  const days = inRange.filter((d) => (!R.fHosp || hospitalById(dayLoc(d).hospital).id === R.fHosp) && (!R.fFund || fundOf(d) === R.fFund) && (R.fSent === 'all' || (R.fSent === 'sent' ? d.sent : !d.sent)));
+  return { a, b, days, funds, hosps: new Set(days.map((d) => hospitalById(dayLoc(d).hospital).id)).size };
+}
 function viewReports() {
   const R = UI.rep;
-  const funds = Array.from(new Set(S.patients.map((p) => p.fund).filter(Boolean)));
-  const fundsSorted = fundsRanked().filter((f) => funds.includes(f));
-  if (!R.fund && fundsSorted.length) R.fund = fundsSorted[0];
   const years = Array.from(new Set(S.cpd.map((e) => Number(e.date.slice(0, 4))).concat([Number(today().slice(0, 4))]))).sort((a, b) => b - a);
   let s = '<div class="topbar"><h1>Reports</h1><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>';
   s += '<p class="note" style="margin-top:-6px">Every report opens as a preview first. Email it from there once you’ve checked it.</p>';
-  const dayN = S.days.filter((d) => d.date === R.billDay);
-  s += '<div class="card" data-mod="bill"><h3>Report generation</h3><p>Billing for one day or a date range: a summary page, then a sheet per patient laid out like your paper form.</p><div class="chips">' + ['day', 'week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(k === 'day' ? 'One day' : RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
-    (R.billRange === 'day' ? '<div class="daynav mt"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' +
-      '<p class="small muted" style="margin:-4px 0 0">' + esc(relDay(R.billDay)) + ': ' + (dayN.length ? plural(dayN.length, 'patient') + ' billed' : 'no billing recorded') + '.</p>' : '') +
+  const F = repFiltered(R);
+  const usedH = S.settings.hospitals.filter((h) => S.days.some((d) => hospitalById(dayLoc(d).hospital).id === h.id));
+  const lab = (t) => '<div class="small muted" style="font-weight:600;margin:14px 0 6px">' + t + '</div>';
+  s += '<div class="card" data-mod="bill"><h3>Report generation</h3><p>Choose what to include. You get a summary set out by hospital, then a form sheet for each patient.</p>' +
+    lab('Dates') + '<div class="chips">' + ['day', 'week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(k === 'day' ? 'One day' : RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
+    (R.billRange === 'day' ? '<div class="daynav mt"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' : '') +
     (R.billRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
-    '<button class="btn block mt" data-act="repBill">Preview</button></div>';
+    (usedH.length > 1 ? lab('Hospital') + '<div class="chips">' + chip('All hospitals', !R.fHosp, 'repSet', 'data-k="fHosp" data-v=""') + usedH.map((h) => chip(h.name, R.fHosp === h.id, 'repSet', 'data-k="fHosp" data-v="' + esc(h.id) + '"')).join('') + '</div>' : '') +
+    lab('Health fund') + '<select data-ch="repFFund" aria-label="Health fund"><option value=""' + (R.fFund ? '' : ' selected') + '>All health funds</option>' + F.funds.map((f) => '<option' + (R.fFund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
+    lab('Sent to your secretary') + '<div class="chips">' + [['all', 'All'], ['unsent', 'Not yet sent'], ['sent', 'Already sent']].map(([k, l]) => chip(l, R.fSent === k, 'repSet', 'data-k="fSent" data-v="' + k + '"')).join('') + '</div>' +
+    '<p class="small muted" style="margin:14px 0 0">' + (F.days.length ? plural(F.days.length, 'patient-day') + ' for ' + plural(new Set(F.days.map((d) => d.pid)).size, 'patient') + (F.hosps > 1 ? ' across ' + F.hosps + ' hospitals' : '') + ' match.' : 'Nothing matches these filters.') + '</p>' +
+    '<button class="btn block mt" data-act="repBill"' + (F.days.length ? '' : ' disabled') + '>Preview</button></div>';
   s += '<div class="sec"><h2>Billing</h2></div>';
   s += repPatientCard(R);
-  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, grouped by hospital, then a form sheet for each patient, for your secretary to lodge.</p>' +
-    (fundsSorted.length ? '<select data-ch="repFund" aria-label="Health fund">' + fundsSorted.map((f) => '<option' + (R.fund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
-      '<div class="chips mt">' + ['month', 'lastmonth', '90d', 'fy', 'custom'].map((k) => chip(RANGE_LABELS[k], R.fundRange === k, 'repSet', 'data-k="fundRange" data-v="' + k + '"')).join('') + '</div>' +
-      (R.fundRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
-      '<button class="btn block mt" data-act="repFund">Preview</button>'
-      : '<p class="muted small">No patients recorded yet.</p>') + '</div>';
   s += '<div class="sec"><h2>ECMO</h2></div><div class="card" data-mod="ecmo"><h3>Accreditation record</h3><p>Counts against your targets, cannulation breakdown and a dated log with a verification block.</p><div class="chips">' +
     [['period', ECMO_PERIOD_LABELS[S.settings.ecmoPeriod.mode]], ['year', 'This calendar year'], ['all', 'All records'], ['custom', 'Custom dates']].filter((v, i, arr) => arr.findIndex((x) => x[1] === v[1]) === i).map(([k, l]) => chip(l, R.ecmoMode === k, 'repSet', 'data-k="ecmoMode" data-v="' + k + '"')).join('') + '</div>' +
     (R.ecmoMode === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="ecmoA" value="' + R.ecmoA + '" aria-label="From"><input type="date" data-in="rep" data-k="ecmoB" value="' + R.ecmoB + '" aria-label="To"></div>' : '') +
@@ -954,9 +960,8 @@ function composeEmail(kind, rep) {
   const first = nm.replace(/^Dr\.?\s+/i, '').split(' ')[0];
   const hi = kind === 'secretary' || kind === 'patient' ? 'Hi' + (S.settings.secretaryName ? ' ' + S.settings.secretaryName : '') + ',\n\n' : 'Hello,\n\n';
   const body = {
-    secretary: 'Please find attached billing for processing: ' + (rep.meta || '') + '.',
+    secretary: rep.fund || rep.hospital ? 'Please find attached ' + (rep.fund ? 'the ' + rep.fund + ' billing' : 'billing') + (rep.hospital ? ' at ' + rep.hospital : '') + ' for ' + (rep.meta || '') + (rep.fund && !rep.hospital ? ', set out by hospital' : '') + '.' : 'Please find attached billing for processing: ' + (rep.meta || '') + '.',
     patient: 'Please find attached the billing sheet for ' + (rep.patientName || '') + (rep.meta ? ', ' + rep.meta : '') + '.',
-    fund: 'Please find attached the ' + rep.title + ' report for ' + (rep.meta || '') + ', set out by hospital.',
     ecmo: 'Please find attached my ECMO practice record for ' + (rep.meta || '') + ', for credentialing and accreditation.',
     cpd: 'Please find attached my CPD record for ' + (rep.meta || '') + ' under the CICM CPD Program.'
   }[kind] || 'Please find the attached report.';
@@ -970,7 +975,7 @@ async function openReport(kind, params = {}) {
   await new Promise((r) => setTimeout(r, 30));
   try {
     let rep;
-    if (kind === 'secretary') { rep = await buildSecretaryReport(params.days, { title: params.title }); rep.meta = fmtRange(...(params.range || [rep.days.length ? rep.days.map((d) => d.date).sort()[0] : today(), rep.days.length ? rep.days.map((d) => d.date).sort().pop() : today()])); }
+    if (kind === 'secretary') { rep = await buildSecretaryReport(params.days, { title: params.title, filters: params.filters, fileLabel: params.fileLabel, range: params.range }); rep.fund = params.fund || ''; rep.hospital = params.hospital || ''; rep.meta = fmtRange(...(params.range || [rep.days.length ? rep.days.map((d) => d.date).sort()[0] : today(), rep.days.length ? rep.days.map((d) => d.date).sort().pop() : today()])); }
     else if (kind === 'patient') {
       const p = patientById(params.pid);
       const pd = S.days.filter((d) => d.pid === params.pid && (!params.a || (d.date >= params.a && d.date <= params.b)));
@@ -978,7 +983,6 @@ async function openReport(kind, params = {}) {
       rep = await buildSecretaryReport(pd, { title: 'Billing for ' + patientName(p), summary: false, fileLabel: patientName(p) });
       rep.meta = fmtRange(rep.range[0], rep.range[1]); rep.patientName = patientName(p);
     }
-    else if (kind === 'fund') { rep = await buildFundReport(params.fund, params.a, params.b); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'ecmo') { rep = buildEcmoReport(params.a, params.b); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'cpd') { rep = buildCpdReport(params.year); rep.meta = String(params.year); }
     pv.rep = rep; pv.loading = false;
@@ -999,7 +1003,7 @@ function renderSendBox(pg) {
   const pv = pg.pv; const box = $('#pvSend', pg.el); if (!box) return;
   const ready = !!pv.pdf;
   const unsent = (pv.rep.days || []).filter((d) => !d.sent);
-  const billing = ['secretary', 'patient', 'fund'].includes(pv.kind);
+  const billing = ['secretary', 'patient'].includes(pv.kind);
   let est = '';
   if (billing && (pv.rep.days || []).length) {
     const days = pv.rep.days; const total = sum(days, dayFee); const items = sum(days, (d) => dayAllCodes(d).length);
@@ -1120,7 +1124,7 @@ function loadDemo() {
   const byName = (n) => (S.settings.hospitals.find((x) => x.name === n) || {}).id;
   S.days.forEach((x) => { if (x.loc && !S.settings.hospitals.some((h) => h.id === x.loc.hospital)) x.loc.hospital = byName(d.hospitals.find((h) => h.id === x.loc.hospital).name); });
   S.patients.forEach((p) => { if (!S.settings.hospitals.some((h) => h.id === p.hospital)) p.hospital = byName(d.hospitals.find((h) => h.id === p.hospital).name); });
-  S.settings.demo = true; S.settings.onboarded = true;
+  S.settings.demo = true; S.settings.onboarded = true; S.settings.demoVersion = DEMO_VERSION;
   S.settings.emails = Object.assign({}, S.settings.emails);
 }
 async function clearAll(keepSettings = true) {
@@ -1208,7 +1212,6 @@ const ACT = {
   repPatientGo: (el) => { closeSheet(); openReport('patient', { pid: el.dataset.pid, a: el.dataset.a || null, b: el.dataset.b || null }); },
   repPick: (el) => { UI.rep.pid = el.dataset.pid || ''; UI.rep.pDay = ''; UI.rep.pA = ''; UI.rep.pB = ''; render(); },
   repDayStep: (el) => { UI.rep.billDay = addDays(UI.rep.billDay, Number(el.dataset.v)); render(); },
-  repDay: () => { const d = UI.rep.billDay; const days = S.days.filter((x) => x.date === d); if (!days.length) { toast('No billing recorded on ' + fmtDate(d)); return; } openReport('secretary', { days, range: [d, d], title: 'Billing for ' + fmtDate(d, { year: true }) }); },
   repPatient: () => {
     const R = UI.rep; const pd = daysFor(R.pid); if (!pd.length) return;
     let a = null, b = null;
@@ -1276,8 +1279,14 @@ const ACT = {
   repSet: (el) => { let v = el.dataset.v; if (el.dataset.num) v = Number(v); UI.rep[el.dataset.k] = v; render(); },
   repFlip: (el) => { UI.rep[el.dataset.k] = !UI.rep[el.dataset.k]; render(); },
   repUnsent: () => { const days = S.days.filter((d) => !d.sent); if (!days.length) { toast('Everything has been sent'); return; } openReport('secretary', { days, title: 'Billing for processing' }); },
-  repBill: () => { const R = UI.rep; if (R.billRange === 'day') return ACT.repDay(); const [a, b] = R.billRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.billRange); const days = S.days.filter((d) => d.date >= a && d.date <= b); if (!days.length) { toast('No billing between those dates'); return; } openReport('secretary', { days, range: [a, b], title: 'Billing for processing' }); },
-  repFund: () => { const R = UI.rep; const [a, b] = R.fundRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.fundRange); openReport('fund', { fund: R.fund, a, b }); },
+  repBill: () => {
+    const R = UI.rep; const F = repFiltered(R);
+    if (!F.days.length) { toast('Nothing matches these filters'); return; }
+    const h = R.fHosp ? hospitalById(R.fHosp) : null;
+    const title = R.fFund ? R.fFund + ' billing' : (R.billRange === 'day' ? 'Billing for ' + fmtDate(R.billDay, { year: true }) : 'Billing for processing');
+    const filters = [h ? h.name : '', R.fFund, R.fSent === 'unsent' ? 'Not yet sent' : R.fSent === 'sent' ? 'Already sent' : ''].filter(Boolean);
+    openReport('secretary', { days: F.days, range: [F.a, F.b], title, filters, fund: R.fFund, hospital: h ? h.name : '', fileLabel: [R.fFund, h ? h.name : ''].filter(Boolean).join(' ') });
+  },
   openReport: (el) => {
     const kind = el.dataset.kind;
     if (kind === 'ecmo') { const m = UI.rep.ecmoMode; const [a, b] = m === 'custom' ? [UI.rep.ecmoA, UI.rep.ecmoB] : m === 'year' ? rangeFor('year') : m === 'all' ? [S.ecmo.map((e) => e.date).sort()[0] || today(), today()] : ecmoRange(); openReport('ecmo', { a, b }); }
@@ -1290,7 +1299,7 @@ const ACT = {
     const r = await shareFile(file, em);
     if (r === 'preview-saved') toast('PDF saved. On the phone, this button opens the share sheet so you can email it.', { ms: 6000 });
     if (r === 'downloaded') toast('PDF saved to your downloads. Attach it to an email to send it.', { ms: 6000 });
-    if (r === 'shared' && ['secretary', 'patient', 'fund'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
+    if (r === 'shared' && ['secretary', 'patient'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
       setTimeout(async () => { const ok = await confirmSheet({ title: 'Mark as sent?', text: 'Mark ' + plural(pv.rep.days.filter((d) => !d.sent).length, 'patient-day') + ' in this report as sent to your secretary?', ok: 'Mark as sent' }); if (ok) ACT.pvMark(); }, 800);
     }
   },
@@ -1352,7 +1361,7 @@ const CH = {
   histStatus: (el) => { UI.hist.status = el.value; render(); },
   billDate: (el) => { if (!el.value) return; const st = curSheet().st; st.date = el.value; st.load(); curSheet().update(false); },
   billTime: (el) => { curSheet().st.times[el.dataset.k] = el.value; curSheet().update(); },
-  repFund: (el) => { UI.rep.fund = el.value; },
+  repFFund: (el) => { UI.rep.fFund = el.value; render(); },
   repDay: (el) => { if (el.value) { UI.rep.billDay = el.value; render(); } },
   repPDay: (el) => { UI.rep.pDay = el.value; },
   ecmoPeriod: (el) => { S.settings.ecmoPeriod.mode = el.value; if (el.value === 'since' && !S.settings.ecmoPeriod.since) S.settings.ecmoPeriod.since = addDays(today(), -364); changed(); }
@@ -1388,6 +1397,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   const h = location.hash.slice(1);
   if (TABS.find((t) => t[0] === h)) UI.tab = h;
   if (!S.settings.onboarded && (SANDBOXED || h === 'demo')) { loadDemo(); save(); }
+  // Sample data made by an older version of the generator is replaced with the current one
+  else if (S.settings.demo && S.settings.demoVersion !== DEMO_VERSION) { await clearAll(); loadDemo(); save(); }
   render();
   if ('serviceWorker' in navigator && !SANDBOXED && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) { } }
 })();

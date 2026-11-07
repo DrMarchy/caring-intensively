@@ -1,5 +1,7 @@
 /* ===== Caring Intensively: 12 months of realistic demo data ===== */
 
+const DEMO_VERSION = 2; // bump when the sample data changes so open copies refresh
+
 function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
 function demoLabelImage(p) {
@@ -30,8 +32,8 @@ function demoLabelImage(p) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 
-function makeDemoData() {
-  const R = seeded(20261107);
+function makeDemoData(seed = 20514515) {
+  const R = seeded(seed);
   const pick = (a) => a[Math.floor(R() * a.length)];
   const chance = (p) => R() < p;
   const wpick = (pairs) => { const t = sum(pairs, (q) => q[1]); let v = R() * t; for (const [k, w] of pairs) { if ((v -= w) <= 0) return k; } return pairs[0][0]; };
