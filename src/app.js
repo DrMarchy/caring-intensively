@@ -574,7 +574,7 @@ function billItemsList(st) {
     const its = list.filter((it) => it.section === sec.id);
     if (!its.length) return '';
     return '<div class="ih">' + esc(sec.name) + (sec.id === 'extra' ? ' (not on the Wesley form)' : '') + '</div><div class="group">' + its.map((it) =>
-      '<div class="item' + (st.sel.has(it.code) ? ' on' : '') + '"><span class="ck">' + (st.sel.has(it.code) ? svg(I.check, 3) : '') + '</span><button class="tx" data-act="tog" data-code="' + it.code + '"><b>' + esc(it.code) + '</b><span>' + esc(it.label) + '</span>' + (it.hint ? '<em>' + esc(it.hint) + '</em>' : '') + '</button><button class="info" data-act="itemInfo" data-code="' + it.code + '" aria-label="Criteria for ' + it.code + '">' + svg(I.info) + '</button></div>').join('') + '</div>';
+      '<div class="item' + (st.sel.has(it.code) ? ' on' : '') + '"><button class="ck" data-act="tog" data-code="' + it.code + '" tabindex="-1" aria-hidden="true">' + (st.sel.has(it.code) ? svg(I.check, 3) : '') + '</button><button class="tx" data-act="tog" data-code="' + it.code + '"><b>' + esc(it.code) + '</b><span>' + esc(it.label) + '</span>' + (it.hint ? '<em>' + esc(it.hint) + '</em>' : '') + '</button><button class="info" data-act="itemInfo" data-code="' + it.code + '" aria-label="Criteria for ' + it.code + '">' + svg(I.info) + '</button></div>').join('') + '</div>';
   }).join('');
 }
 function billSheet(st) {
