@@ -1,4 +1,6 @@
-/* ===== Gill-Able: 12 months of realistic demo data ===== */
+/* ===== Caring Intensively: 12 months of realistic demo data ===== */
+
+const DEMO_VERSION = 2; // bump when the sample data changes so open copies refresh
 
 function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -13,7 +15,7 @@ function demoLabelImage(p) {
   x.shadowColor = 'transparent';
   x.fillStyle = '#1b1b1b'; x.textBaseline = 'alphabetic';
   const f = (s, w) => { x.font = (w || 400) + ' ' + s + 'px "Helvetica Neue", Helvetica, Arial, sans-serif'; };
-  f(22, 700); x.fillText('THE WESLEY HOSPITAL', -410, -140);
+  f(22, 700); x.fillText(p.labelHosp || 'THE WESLEY HOSPITAL', -410, -140);
   x.fillStyle = '#c21d2f'; f(20, 800); x.fillText('SAMPLE', 300, -140); x.fillStyle = '#1b1b1b';
   f(40, 700); x.fillText(p.name || '', -410, -84);
   f(26, 500);
@@ -30,8 +32,8 @@ function demoLabelImage(p) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 
-function makeDemoData() {
-  const R = seeded(20261107);
+function makeDemoData(seed = 20514515) {
+  const R = seeded(seed);
   const pick = (a) => a[Math.floor(R() * a.length)];
   const chance = (p) => R() < p;
   const wpick = (pairs) => { const t = sum(pairs, (q) => q[1]); let v = R() * t; for (const [k, w] of pairs) { if ((v -= w) <= 0) return k; } return pairs[0][0]; };
@@ -71,13 +73,15 @@ function makeDemoData() {
           sex: female ? 'F' : 'M', dob: pad(1 + Math.floor(R() * 28)) + '/' + pad(1 + Math.floor(R() * 12)) + '/' + (Number(adm.slice(0, 4)) - age),
           memb: String(1000 + Math.floor(R() * 8999)) + ' ' + String(10000 + Math.floor(R() * 89999)), age
         };
+        // About a third of admissions are at Greenslopes, so multi-site billing has something to show
+        if (chance(0.35)) { p.hospital = 'greenslopes'; p.bed = String(1 + Math.floor(R() * 12)); p.labelHosp = 'GREENSLOPES PRIVATE HOSPITAL'; }
         p.labelWard = p.ward; p.labelBed = p.bed;
         // Ward consults that don't come to ICU
         if (chance(0.1)) {
           const code = chance(0.5) ? '13899' : '160';
           const st = pad(8 + Math.floor(R() * 12)) + ':' + pad(Math.floor(R() * 4) * 15);
           add(p.id, adm, [code], { times: { start: st, finish: addMins(st, 60 + Math.floor(R() * 30)) } });
-          p.dischargedAt = adm; p.ward = chance(0.5) ? '4B' : '6A'; p.bed = String(1 + Math.floor(R() * 30));
+          p.dischargedAt = adm; p.ward = p.hospital === 'greenslopes' ? (chance(0.5) ? 'Ward 2' : 'Ward 5') : (chance(0.5) ? '4B' : '6A'); p.bed = String(1 + Math.floor(R() * 30));
           p.labelWard = p.ward; p.labelBed = p.bed;
           days[days.length - 1].loc = patientLoc(p);
           patients.push(p); continue;
@@ -92,9 +96,12 @@ function makeDemoData() {
         const iabp = kind === 'shock' && chance(0.6);
         const niv = !vent && kind === 'resp' && chance(0.5);
         const stepDown = los >= 3 && chance(0.18);
+        // Some Wesley patients transfer to Greenslopes part-way through their stay
+        const transferAt = p.hospital === 'wesley' && los >= 3 && chance(0.15) ? 1 + Math.floor(R() * (los - 2)) : -1;
         for (let k = 0; k < los; k++) {
           const date = addDays(adm, k);
           if (date > weekEnd) break;
+          if (k === transferAt) { p.hospital = 'greenslopes'; p.ward = 'ICU'; p.bed = String(1 + Math.floor(R() * 12)); }
           if (isCurrent && date === T && chance(0.5)) break; // some patients not yet billed today
           const it = [];
           if (k === 0) {
@@ -193,6 +200,24 @@ function makeDemoData() {
   C(y + '-10-21', 'mdt', 1, { title: 'Cardiac surgery MDT' });
 
   const locations = ['The Wesley Hospital ICU', 'Online', 'Wesley Education Centre', 'Brisbane Convention & Exhibition Centre'];
-  return { patients, days, ecmo, cpd, locations };
+  // Make sure the current week always has multi-site cases to test with
+  const GS = (p) => { p.hospital = 'greenslopes'; p.labelHosp = 'GREENSLOPES PRIVATE HOSPITAL'; p.ward = 'ICU'; p.labelWard = 'ICU'; p.bed = p.labelBed = String(1 + Math.floor(R() * 12)); };
+  const stay = (p) => days.filter((d) => d.pid === p.id).sort((a, b) => a.date < b.date ? -1 : 1);
+  const wesleyOnly = (p) => stay(p).every((d) => d.loc.hospital === 'wesley');
+  const cur = patients.filter((p) => days.some((d) => d.pid === p.id && d.date >= thisWeek));
+  // 1. A patient who moves from the Wesley to Greenslopes part-way through this week
+  const mover = cur.filter((p) => wesleyOnly(p) && stay(p).length >= 3 && stay(p)[0].date >= thisWeek).sort((a, b) => stay(b).length - stay(a).length)[0];
+  if (mover) { const st = stay(mover); const from = Math.ceil(st.length / 2); const lb = mover.labelBed; GS(mover); mover.labelBed = lb; st.slice(from).forEach((d) => { d.loc = { hospital: 'greenslopes', ward: 'ICU', bed: mover.bed }; }); mover.labelHosp = undefined; mover.labelWard = 'ICU'; }
+  // 2. The two biggest funds have patients at both hospitals this week
+  ['Medibank', 'Bupa'].forEach((f) => {
+    const fp = cur.filter((p) => p.fund === f && p !== mover);
+    if (fp.some((p) => stay(p).some((d) => d.loc.hospital === 'greenslopes')) && fp.some((p) => stay(p).some((d) => d.loc.hospital === 'wesley'))) return;
+    const wes = fp.filter(wesleyOnly);
+    if (wes.length >= 2) { const q = wes[0]; GS(q); stay(q).forEach((d) => { d.loc = { hospital: 'greenslopes', ward: d.loc.ward === 'HDU' ? 'HDU' : 'ICU', bed: q.bed }; }); }
+    else if (!fp.some(wesleyOnly)) { const q = fp.find((p) => p.hospital === 'greenslopes'); if (q) { q.hospital = 'wesley'; q.labelHosp = undefined; stay(q).forEach((d) => { d.loc = { hospital: 'wesley', ward: 'ICU', bed: q.bed }; }); } }
+  });
+  // Provider numbers here are made up for the sample data
+  const hospitals = [{ id: 'wesley', name: 'The Wesley Hospital', provider: '242652BX' }, { id: 'greenslopes', name: 'Greenslopes Private Hospital', provider: '242652DH', demo: true }];
+  return { patients, days, ecmo, cpd, locations, hospitals };
 }
 function addMins(t, m) { const [h, mm] = t.split(':').map(Number); const v = (h * 60 + mm + m) % 1440; return pad(Math.floor(v / 60)) + ':' + pad(v % 60); }

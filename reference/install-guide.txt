@@ -1,4 +1,4 @@
-GILL-ABLE: billing, ECMO and CPD for Dr Denzil Gill
+CARING INTENSIVELY: billing, ECMO and CPD for Dr Denzil Gill
 ================================================
 
 This folder is the whole app. It is a static website: no server, no database,
@@ -10,8 +10,8 @@ PUT IT ONLINE FOR FREE (about 5 minutes, done once)
 
 Option A: GitHub Pages (free, permanent)
  1. Sign in or create a free account at https://github.com
- 2. Click "New repository". Name it "gill-able", choose Public, click Create.
- 3. Click "uploading an existing file". Open the Gill-Able folder, select
+ 2. Click "New repository". Name it "caring-intensively", choose Public, click Create.
+ 3. Click "uploading an existing file". Open the Caring Intensively folder, select
     everything inside it (index.html, manifest.webmanifest, sw.js, the icon
     PNGs, README.txt and the "ocr" folder) and drag it all in together. Wait
     for every file to finish uploading (the ocr folder is about 15 MB), then
@@ -19,20 +19,20 @@ Option A: GitHub Pages (free, permanent)
  4. Open Settings > Pages. Under "Build and deployment", choose
     "Deploy from a branch", branch "main", folder "/ (root)", then Save.
  5. After a minute or two the app is live at
-    https://YOUR-USERNAME.github.io/gill-able/
+    https://YOUR-USERNAME.github.io/caring-intensively/
     Send that link to Denzil.
 
 Option B: Cloudflare Pages (free)
  1. Sign in or create a free account at https://dash.cloudflare.com
  2. Workers & Pages > Create > Pages > Upload assets.
- 3. Name the project "gill-able" and drag in this folder. Click Deploy.
- 4. The app is live at https://gill-able.pages.dev (or a similar address).
+ 3. Name the project "caring-intensively" and drag in this folder. Click Deploy.
+ 4. The app is live at https://caring-intensively.pages.dev (or a similar address).
 
 INSTALL ON DENZIL'S IPHONE
 --------------------------
  1. Open the link in Safari.
  2. Tap Share, then "Add to Home Screen", then Add.
- 3. Open Gill-Able from the Home Screen icon (not from Safari) and start there.
+ 3. Open Caring Intensively from the Home Screen icon (not from Safari) and start there.
     A Home Screen app keeps its own storage, so anything entered in a Safari
     tab won't appear in the installed app.
  4. Choose "Start with an empty logbook", or explore the 12 months of sample
@@ -51,7 +51,7 @@ KEEPING RECORDS SAFE
 
 READING PATIENT LABELS
 ----------------------
-After you photograph a label, Gill-Able reads the name, UR/MRN, health fund and
+After you photograph a label, Caring Intensively reads the name, UR/MRN, health fund and
 referring doctor and fills them in for you to check. This runs entirely on
 the phone using the open-source Tesseract engine in the "ocr" folder; the
 photo is never uploaded. The first time it runs it loads the engine (about

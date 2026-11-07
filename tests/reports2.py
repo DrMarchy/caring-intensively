@@ -16,14 +16,15 @@ async def main():
             title = await top.locator('h1').text_content()
             meta = await top.locator('h1 + p').text_content()
             async with pg.expect_download() as dl:
-                await top.locator('[data-act="pvShare"]').click()
+                await top.locator('[data-act="pvEmail"]').click()
             d = await dl.value; print(name, '|', title, '|', meta, '| pages', n, '| file', d.suggested_filename)
             await d.save_as('tests/shots/' + name + '.pdf')
             await pg.screenshot(path='tests/shots/b_' + name + '.png')
             await top.locator('[data-act="closePage"]').click(); await pg.wait_for_timeout(300)
         # one day (yesterday)
+        await pg.click('[data-act="repSet"][data-k="billRange"][data-v="day"]'); await pg.wait_for_timeout(200)
         await pg.click('[data-act="repDayStep"][data-v="-1"]'); await pg.wait_for_timeout(200)
-        await pg.click('[data-act="repDay"]'); await preview_and_save('day')
+        await pg.click('[data-act="repBill"]'); await preview_and_save('day')
         # one patient: search, pick, whole stay
         await pg.fill('input[data-in="repPQ"]', 'patel'); await pg.wait_for_timeout(300)
         await pg.screenshot(path='tests/shots/b2_pick.png')

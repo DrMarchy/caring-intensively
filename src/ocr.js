@@ -1,4 +1,4 @@
-/* ===== Gill-Able: read patient labels on the phone (Tesseract, runs locally, no upload) ===== */
+/* ===== Caring Intensively: read patient labels on the phone (Tesseract, runs locally, no upload) ===== */
 
 const OCR = { worker: null, loading: null, progress: 0, onProgress: null };
 const ocrBase = () => new URL('ocr/', location.href).href.replace(/\/$/, '');

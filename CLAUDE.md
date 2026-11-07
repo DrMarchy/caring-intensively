@@ -1,7 +1,7 @@
-# CLAUDE.md: guidance for working on Caring Intensively / Gill-Able
+# CLAUDE.md: guidance for working on Caring Intensively
 
 ## What this is
-Gill-Able is a phone-first PWA for Dr Denzil Gill, an intensivist at The Wesley Hospital, Brisbane, who also does ECMO work. It covers private ICU billing, an ECMO accreditation logbook and CICM CPD tracking. Tyron (the repo owner, an ICU registrar) built it for him. See README.md for the feature summary.
+Caring Intensively is a phone-first PWA for Dr Denzil Gill, an intensivist at The Wesley Hospital, Brisbane, who also does ECMO work. It covers private ICU billing, an ECMO accreditation logbook and CICM CPD tracking. Tyron (the repo owner, an ICU registrar) built it for him. See README.md for the feature summary.
 
 ## Hard constraints
 - **No backend, no network calls, no analytics.** Patient data (names, URs, label photos) is health information and must never leave the device. Everything lives in IndexedDB (`gills` database, stores `kv` and `photos`). Don't add fetches to third-party hosts. The CSP-friendly approach is to vendor assets into `src/`.
@@ -29,6 +29,7 @@ Gill-Able is a phone-first PWA for Dr Denzil Gill, an intensivist at The Wesley 
 1. Edit `src/`, then run `python3 build.py`.
 2. Serve `docs/` on port 8765 and run the Playwright tests in `tests/` (see README).
 3. For anything users will see, bump `CACHE` in `src/sw.js` before release.
+   If you change the sample data in `demo.js`, also bump `DEMO_VERSION` so copies already showing sample data refresh.
 4. Commit both `src/` and the rebuilt `docs/`. Pages deploys `docs/` from `main`.
 
 Copy style: plain, sentence case, Australian spelling, no exclamation marks.

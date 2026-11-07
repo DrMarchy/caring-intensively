@@ -1,4 +1,4 @@
-/* ===== Gill‑Able: interface ===== */
+/* ===== Caring Intensively: interface ===== */
 const SANDBOXED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const STANDALONE = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
@@ -31,7 +31,7 @@ const UI = {
   tab: 'home', billSeg: 'active',
   hist: { q: '', range: '30d', fund: '', status: '', group: 'date', limit: 120 },
   statsRange: '12m', ecmoQ: '', ecmoFilter: '', cpdYear: Number(today().slice(0, 4)), cpdQ: '',
-  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fund: '', fundRange: 'month', fundSheets: false, ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
+  rep: { billDay: today(), pid: '', pq: '', pMode: 'stay', pDay: '', pA: '', pB: '', billRange: 'week', billA: today(), billB: today(), fHosp: '', fFund: '', fSent: 'all', ecmoMode: 'period', ecmoA: addDays(today(), -364), ecmoB: today(), cpdYear: Number(today().slice(0, 4)) }
 };
 const TABS = [['home', 'Home', 'home', 'bill'], ['billing', 'Patients', 'bed', 'bill'], ['ecmo', 'ECMO', 'ecmo', 'ecmo'], ['cpd', 'CPD', 'cpd', 'cpd'], ['reports', 'Reports', 'doc', 'bill']];
 
@@ -190,7 +190,7 @@ function hbars(rows, max) {
 /* ---------------- Welcome ---------------- */
 function viewWelcome() {
   const h = S.settings.hospitals[0] || {};
-  return '<div class="welcome" data-mod="bill"><div class="mark">' + LOGO + '</div><h1>Gill‑Able</h1>' +
+  return '<div class="welcome" data-mod="bill"><div class="mark">' + LOGO + '</div><h1>Caring Intensively</h1>' +
     '<p class="lead">ICU billing, an ECMO logbook and CICM CPD tracking for ' + esc(S.settings.name) + ', in your pocket.</p>' +
     '<div class="field"><label for="w-name">Your name as it appears on billing forms</label><input id="w-name" type="text" data-in="set" data-k="name" value="' + esc(S.settings.name) + '"></div>' +
     '<div class="two"><div class="field"><label for="w-h">Hospital</label><input id="w-h" type="text" data-in="hosp" data-i="0" data-k="name" value="' + esc(h.name || '') + '"></div>' +
@@ -207,7 +207,7 @@ function viewHome() {
   const first = (S.settings.name || '').replace(/^Dr\.?\s+/i, '').split(' ')[0] || 'there';
   const dateStr = DOW[now.getDay()] + 'day'.replace('day', '') ;
   const full = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()] + ' ' + now.getDate() + ' ' + MONTH_FULL[now.getMonth()];
-  return '<div class="topbar"><div class="brand">' + LOGO + '<span class="wordmark">Gill‑Able</span></div><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>' +
+  return '<div class="topbar"><div class="brand">' + LOGO + '<span class="wordmark">Caring Intensively</span></div><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>' +
     '<div class="greet"><div class="d">' + full + '</div><div class="h">' + greet + ', ' + esc(first) + '</div></div>' +
     banners() + monitorPanel() + toBillToday() +
     '<div class="sec"><h2>Log something</h2></div><div class="actions">' +
@@ -219,8 +219,8 @@ function viewHome() {
 }
 function banners() {
   let s = '';
-  if (S.settings.demo) s += '<div class="banner demo"><div class="main"><b>Sample data.</b> This is 12 months of made-up records to show what Gill‑Able looks like in use.</div><button class="btn sm ghost" data-act="clearDemo">Clear</button></div>';
-  if (!STANDALONE && !SANDBOXED && !S.settings.installTipHidden) s += '<div class="banner"><div class="main">' + (IS_IOS ? 'Add Gill‑Able to your Home Screen: tap Share, then <b>Add to Home Screen</b>. It opens like an app and keeps your data safe from Safari clean-ups.' : 'Install Gill‑Able from your browser menu (Add to Home screen) so it opens like an app.') + '</div><button class="xbtn" data-act="hideInstall" aria-label="Dismiss">' + svg(I.x, 2.2) + '</button></div>';
+  if (S.settings.demo) s += '<div class="banner demo"><div class="main"><b>Sample data.</b> This is 12 months of made-up records to show what Caring Intensively looks like in use.</div><button class="btn sm ghost" data-act="clearDemo">Clear</button></div>';
+  if (!STANDALONE && !SANDBOXED && !S.settings.installTipHidden) s += '<div class="banner"><div class="main">' + (IS_IOS ? 'Add Caring Intensively to your Home Screen: tap Share, then <b>Add to Home Screen</b>. It opens like an app and keeps your data safe from Safari clean-ups.' : 'Install Caring Intensively from your browser menu (Add to Home screen) so it opens like an app.') + '</div><button class="xbtn" data-act="hideInstall" aria-label="Dismiss">' + svg(I.x, 2.2) + '</button></div>';
   return s;
 }
 function monitorPanel() {
@@ -393,7 +393,8 @@ function openPatient(pid) {
       '<div class="sec"><h2>Days of care</h2><div class="sp"></div><span class="small muted">' + plural(days.length, 'day') + (days.length ? ', about ' + fmtMoney(sum(days, dayFee)) : '') + '</span></div>' +
       (days.length ? '<div class="group">' + days.map((d, i) => '<div class="row tap" data-act="openDay" data-id="' + d.id + '"><div class="main"><div class="t">' + esc(fmtDate(d.date)) + '</div><div class="s">' + esc(locText(dayLoc(d))) + (days[i + 1] && !sameLoc(dayLoc(days[i + 1]), dayLoc(d)) ? ' (moved)' : '') + '</div>' + codesHTML(dayAllCodes(d)) + (d.note ? '<div class="s wrap">' + esc(d.note) + '</div>' : '') + '</div>' + (d.sent ? '<span class="pill ok">Sent</span>' : '<span class="pill warn">Not sent</span>') + '</div>').join('') + '</div>'
         : '<div class="group"><div class="empty">No billing recorded yet.</div></div>') +
-      '<button class="btn ghost block mt" data-act="patientReport" data-pid="' + pid + '">Billing sheet for a day or the whole stay</button>';
+      '<button class="btn ghost block mt" data-act="patientReport" data-pid="' + pid + '">Billing sheet for a day or the whole stay</button>' +
+      '<button class="btn danger block mt2" data-act="deletePatient" data-pid="' + pid + '">Delete patient</button>';
   }, { mod: 'bill' });
 }
 
@@ -574,7 +575,7 @@ function billItemsList(st) {
     const its = list.filter((it) => it.section === sec.id);
     if (!its.length) return '';
     return '<div class="ih">' + esc(sec.name) + (sec.id === 'extra' ? ' (not on the Wesley form)' : '') + '</div><div class="group">' + its.map((it) =>
-      '<div class="item' + (st.sel.has(it.code) ? ' on' : '') + '"><span class="ck">' + (st.sel.has(it.code) ? svg(I.check, 3) : '') + '</span><button class="tx" data-act="tog" data-code="' + it.code + '"><b>' + esc(it.code) + '</b><span>' + esc(it.label) + '</span>' + (it.hint ? '<em>' + esc(it.hint) + '</em>' : '') + '</button><button class="info" data-act="itemInfo" data-code="' + it.code + '" aria-label="Criteria for ' + it.code + '">' + svg(I.info) + '</button></div>').join('') + '</div>';
+      '<div class="item' + (st.sel.has(it.code) ? ' on' : '') + '"><button class="ck" data-act="tog" data-code="' + it.code + '" tabindex="-1" aria-hidden="true">' + (st.sel.has(it.code) ? svg(I.check, 3) : '') + '</button><button class="tx" data-act="tog" data-code="' + it.code + '"><b>' + esc(it.code) + '</b><span>' + esc(it.label) + '</span>' + (it.hint ? '<em>' + esc(it.hint) + '</em>' : '') + '</button><button class="info" data-act="itemInfo" data-code="' + it.code + '" aria-label="Criteria for ' + it.code + '">' + svg(I.info) + '</button></div>').join('') + '</div>';
   }).join('');
 }
 function billSheet(st) {
@@ -886,34 +887,34 @@ function saveCpd() {
 }
 
 /* ---------------- Reports ---------------- */
+/* Billing days matching the Report generation filters */
+function repFiltered(R) {
+  const [a, b] = R.billRange === 'day' ? [R.billDay, R.billDay] : R.billRange === 'custom' ? [R.billA <= R.billB ? R.billA : R.billB, R.billA <= R.billB ? R.billB : R.billA] : rangeFor(R.billRange);
+  const inRange = S.days.filter((d) => d.date >= a && d.date <= b);
+  const fundOf = (d) => (patientById(d.pid) || {}).fund || '';
+  const funds = fundsRanked().filter((f) => inRange.some((d) => fundOf(d) === f)).concat(R.fFund && !inRange.some((d) => fundOf(d) === R.fFund) ? [R.fFund] : []);
+  const days = inRange.filter((d) => (!R.fHosp || hospitalById(dayLoc(d).hospital).id === R.fHosp) && (!R.fFund || fundOf(d) === R.fFund) && (R.fSent === 'all' || (R.fSent === 'sent' ? d.sent : !d.sent)));
+  return { a, b, days, funds, hosps: new Set(days.map((d) => hospitalById(dayLoc(d).hospital).id)).size };
+}
 function viewReports() {
   const R = UI.rep;
-  const unsent = S.days.filter((d) => !d.sent);
-  const upids = new Set(unsent.map((d) => d.pid));
-  const oldest = unsent.map((d) => d.date).sort()[0];
-  const funds = Array.from(new Set(S.patients.map((p) => p.fund).filter(Boolean)));
-  const fundsSorted = fundsRanked().filter((f) => funds.includes(f));
-  if (!R.fund && fundsSorted.length) R.fund = fundsSorted[0];
   const years = Array.from(new Set(S.cpd.map((e) => Number(e.date.slice(0, 4))).concat([Number(today().slice(0, 4))]))).sort((a, b) => b - a);
   let s = '<div class="topbar"><h1>Reports</h1><div class="sp"></div><button class="iconbtn" data-act="settings" aria-label="Settings">' + svg(I.gear) + '</button></div>';
   s += '<p class="note" style="margin-top:-6px">Every report opens as a preview first. Email it from there once you’ve checked it.</p>';
-  s += '<div class="sec"><h2>Billing</h2></div>';
-  s += '<div class="card" data-mod="bill"><h3>Not yet sent to your secretary</h3><p>' + (unsent.length ? plural(unsent.length, 'patient-day') + ' for ' + plural(upids.size, 'patient') + ', since ' + esc(fmtDate(oldest)) + '.' : 'Everything has been sent.') + '</p><button class="btn block" data-act="repUnsent"' + (unsent.length ? '' : ' disabled') + '>Preview billing sheets</button></div>';
-  const dayN = S.days.filter((d) => d.date === R.billDay);
-  s += '<div class="card" data-mod="bill"><h3>One day</h3><p>Everyone you billed on one day: a summary page, then each patient\u2019s sheet.</p>' +
-    '<div class="daynav"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' +
-    '<p class="small muted" style="margin:-4px 0 10px">' + esc(relDay(R.billDay)) + ': ' + (dayN.length ? plural(dayN.length, 'patient') + ' billed' : 'no billing recorded') + '.</p>' +
-    '<button class="btn block" data-act="repDay"' + (dayN.length ? '' : ' disabled') + '>Preview</button></div>';
-  s += repPatientCard(R);
-  s += '<div class="card" data-mod="bill"><h3>Date range</h3><p>A summary page, then a sheet per patient laid out like your paper form.</p><div class="chips">' + ['week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
+  const F = repFiltered(R);
+  const usedH = S.settings.hospitals.filter((h) => S.days.some((d) => hospitalById(dayLoc(d).hospital).id === h.id));
+  const lab = (t) => '<div class="small muted" style="font-weight:600;margin:14px 0 6px">' + t + '</div>';
+  s += '<div class="card" data-mod="bill"><h3>Report generation</h3><p>Choose what to include. You get a summary set out by hospital, then a form sheet for each patient.</p>' +
+    lab('Dates') + '<div class="chips">' + ['day', 'week', 'lastweek', 'month', 'lastmonth', 'custom'].map((k) => chip(k === 'day' ? 'One day' : RANGE_LABELS[k], R.billRange === k, 'repSet', 'data-k="billRange" data-v="' + k + '"')).join('') + '</div>' +
+    (R.billRange === 'day' ? '<div class="daynav mt"><button class="iconbtn" data-act="repDayStep" data-v="-1" aria-label="Previous day">' + svg(I.left, 2.2) + '</button><input type="date" data-ch="repDay" value="' + R.billDay + '" aria-label="Day"><button class="iconbtn" data-act="repDayStep" data-v="1" aria-label="Next day">' + svg(I.right, 2.2) + '</button></div>' : '') +
     (R.billRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
-    '<button class="btn block mt" data-act="repBill">Preview</button></div>';
-  s += '<div class="card" data-mod="bill"><h3>By health fund</h3><p>A list of services for one fund, for your secretary to lodge.</p>' +
-    (fundsSorted.length ? '<select data-ch="repFund" aria-label="Health fund">' + fundsSorted.map((f) => '<option' + (R.fund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
-      '<div class="chips mt">' + ['month', 'lastmonth', '90d', 'fy', 'custom'].map((k) => chip(RANGE_LABELS[k], R.fundRange === k, 'repSet', 'data-k="fundRange" data-v="' + k + '"')).join('') + '</div>' +
-      (R.fundRange === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="billA" value="' + R.billA + '" aria-label="From"><input type="date" data-in="rep" data-k="billB" value="' + R.billB + '" aria-label="To"></div>' : '') +
-      '<div class="toggle"><div class="main">Include a form sheet for each patient</div><button class="switch' + (R.fundSheets ? ' on' : '') + '" data-act="repFlip" data-k="fundSheets" aria-label="Include form sheets"></button></div><button class="btn block" data-act="repFund">Preview</button>'
-      : '<p class="muted small">No patients recorded yet.</p>') + '</div>';
+    (usedH.length > 1 ? lab('Hospital') + '<div class="chips">' + chip('All hospitals', !R.fHosp, 'repSet', 'data-k="fHosp" data-v=""') + usedH.map((h) => chip(h.name, R.fHosp === h.id, 'repSet', 'data-k="fHosp" data-v="' + esc(h.id) + '"')).join('') + '</div>' : '') +
+    lab('Health fund') + '<select data-ch="repFFund" aria-label="Health fund"><option value=""' + (R.fFund ? '' : ' selected') + '>All health funds</option>' + F.funds.map((f) => '<option' + (R.fFund === f ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select>' +
+    lab('Sent to your secretary') + '<div class="chips">' + [['all', 'All'], ['unsent', 'Not yet sent'], ['sent', 'Already sent']].map(([k, l]) => chip(l, R.fSent === k, 'repSet', 'data-k="fSent" data-v="' + k + '"')).join('') + '</div>' +
+    '<p class="small muted" style="margin:14px 0 0">' + (F.days.length ? plural(F.days.length, 'patient-day') + ' for ' + plural(new Set(F.days.map((d) => d.pid)).size, 'patient') + (F.hosps > 1 ? ' across ' + F.hosps + ' hospitals' : '') + ' match.' : 'Nothing matches these filters.') + '</p>' +
+    '<button class="btn block mt" data-act="repBill"' + (F.days.length ? '' : ' disabled') + '>Preview</button></div>';
+  s += '<div class="sec"><h2>Billing</h2></div>';
+  s += repPatientCard(R);
   s += '<div class="sec"><h2>ECMO</h2></div><div class="card" data-mod="ecmo"><h3>Accreditation record</h3><p>Counts against your targets, cannulation breakdown and a dated log with a verification block.</p><div class="chips">' +
     [['period', ECMO_PERIOD_LABELS[S.settings.ecmoPeriod.mode]], ['year', 'This calendar year'], ['all', 'All records'], ['custom', 'Custom dates']].filter((v, i, arr) => arr.findIndex((x) => x[1] === v[1]) === i).map(([k, l]) => chip(l, R.ecmoMode === k, 'repSet', 'data-k="ecmoMode" data-v="' + k + '"')).join('') + '</div>' +
     (R.ecmoMode === 'custom' ? '<div class="two mt"><input type="date" data-in="rep" data-k="ecmoA" value="' + R.ecmoA + '" aria-label="From"><input type="date" data-in="rep" data-k="ecmoB" value="' + R.ecmoB + '" aria-label="To"></div>' : '') +
@@ -954,29 +955,27 @@ function openPatientReportChooser(pid) {
     })
   });
 }
-function emailKeyFor(kind) { return { secretary: 'billing', fund: 'fund', ecmo: 'ecmo', cpd: 'cpd', patient: 'billing' }[kind] || 'billing'; }
 function composeEmail(kind, rep) {
   const nm = S.settings.name || '';
   const first = nm.replace(/^Dr\.?\s+/i, '').split(' ')[0];
   const hi = kind === 'secretary' || kind === 'patient' ? 'Hi' + (S.settings.secretaryName ? ' ' + S.settings.secretaryName : '') + ',\n\n' : 'Hello,\n\n';
   const body = {
-    secretary: 'Please find attached billing for processing: ' + (rep.meta || '') + '.',
+    secretary: rep.fund || rep.hospital ? 'Please find attached ' + (rep.fund ? 'the ' + rep.fund + ' billing' : 'billing') + (rep.hospital ? ' at ' + rep.hospital : '') + ' for ' + (rep.meta || '') + (rep.fund && !rep.hospital ? ', set out by hospital' : '') + '.' : 'Please find attached billing for processing: ' + (rep.meta || '') + '.',
     patient: 'Please find attached the billing sheet for ' + (rep.patientName || '') + (rep.meta ? ', ' + rep.meta : '') + '.',
-    fund: 'Please find attached ' + rep.title.toLowerCase() + ' for ' + (rep.meta || '') + '.',
     ecmo: 'Please find attached my ECMO practice record for ' + (rep.meta || '') + ', for credentialing and accreditation.',
     cpd: 'Please find attached my CPD record for ' + (rep.meta || '') + ' under the CICM CPD Program.'
   }[kind] || 'Please find the attached report.';
-  return { subject: rep.title + (rep.meta ? ', ' + rep.meta : ''), body: hi + body + '\n\nThanks,\n' + (first || nm) };
+  return { subject: rep.title + (rep.meta && !rep.title.includes(rep.meta) ? ', ' + rep.meta : ''), body: hi + body + '\n\nThanks,\n' + (first || nm) };
 }
 async function openReport(kind, params = {}) {
-  const pv = { kind, loading: true, rep: null, pdf: null, to: S.settings.emails[emailKeyFor(kind)] || '', shared: false, marked: false };
+  const pv = { kind, loading: true, rep: null, pdf: null, shared: false, marked: false };
   const pg = openPage(null, { mod: kind === 'ecmo' ? 'ecmo' : kind === 'cpd' ? 'cpd' : 'bill', static: true });
   pg.pv = pv;
   pg.el.innerHTML = '<div class="in">' + pageHead('Close', 'Report preview') + '<div class="empty"><b>Preparing report…</b>This takes a moment for larger reports.</div></div>';
   await new Promise((r) => setTimeout(r, 30));
   try {
     let rep;
-    if (kind === 'secretary') { rep = await buildSecretaryReport(params.days, { title: params.title }); rep.meta = fmtRange(...(params.range || [rep.days.length ? rep.days.map((d) => d.date).sort()[0] : today(), rep.days.length ? rep.days.map((d) => d.date).sort().pop() : today()])); }
+    if (kind === 'secretary') { rep = await buildSecretaryReport(params.days, { title: params.title, filters: params.filters, fileLabel: params.fileLabel, range: params.range }); rep.fund = params.fund || ''; rep.hospital = params.hospital || ''; rep.meta = fmtRange(...(params.range || [rep.days.length ? rep.days.map((d) => d.date).sort()[0] : today(), rep.days.length ? rep.days.map((d) => d.date).sort().pop() : today()])); }
     else if (kind === 'patient') {
       const p = patientById(params.pid);
       const pd = S.days.filter((d) => d.pid === params.pid && (!params.a || (d.date >= params.a && d.date <= params.b)));
@@ -984,7 +983,6 @@ async function openReport(kind, params = {}) {
       rep = await buildSecretaryReport(pd, { title: 'Billing for ' + patientName(p), summary: false, fileLabel: patientName(p) });
       rep.meta = fmtRange(rep.range[0], rep.range[1]); rep.patientName = patientName(p);
     }
-    else if (kind === 'fund') { rep = await buildFundReport(params.fund, params.a, params.b, { sheets: params.sheets }); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'ecmo') { rep = buildEcmoReport(params.a, params.b); rep.meta = fmtRange(params.a, params.b); }
     else if (kind === 'cpd') { rep = buildCpdReport(params.year); rep.meta = String(params.year); }
     pv.rep = rep; pv.loading = false;
@@ -1005,20 +1003,19 @@ function renderSendBox(pg) {
   const pv = pg.pv; const box = $('#pvSend', pg.el); if (!box) return;
   const ready = !!pv.pdf;
   const unsent = (pv.rep.days || []).filter((d) => !d.sent);
-  const billing = ['secretary', 'patient', 'fund'].includes(pv.kind);
-  const toLabel = { secretary: 'Secretary’s email', patient: 'Secretary’s email', fund: 'Send to', ecmo: 'Send to (e.g. ECMO director or credentialing committee)', cpd: 'Send to (CICM or yourself)' }[pv.kind];
+  const billing = ['secretary', 'patient'].includes(pv.kind);
   let est = '';
   if (billing && (pv.rep.days || []).length) {
     const days = pv.rep.days; const total = sum(days, dayFee); const items = sum(days, (d) => dayAllCodes(d).length);
     const custom = Object.keys(S.settings.itemFees || {}).some((c) => userFee(c) != null);
     est = '<div class="estbill"><div class="small muted">Estimated billing</div><div class="v">' + fmtMoney(total) + '</div><div class="small muted">' + plural(items, 'item') + ' across ' + plural(days.length, 'patient-day') + ', at ' + (custom ? 'MBS schedule rates with your own rates where set' : 'MBS schedule rates') + '. An estimate only: no multiple-operation rule or gap applied.</div></div>';
   }
-  box.innerHTML = '<div class="sendbox">' + est + '<div class="field"><label for="pv-to">' + esc(toLabel) + '</label><input id="pv-to" type="email" data-in="pvTo" value="' + esc(pv.to) + '" placeholder="name@example.com" autocomplete="email" inputmode="email"><div class="hint">Saved for next time. Mail opens with the PDF attached; the address is copied so you can paste it into To.</div></div>' +
-    '<div class="btnrow"><button class="btn" data-act="pvEmail"' + (ready ? '' : ' disabled') + '>' + svg(I.mail) + (ready ? 'Email PDF' : 'Preparing PDF…') + '</button><button class="btn ghost" data-act="pvShare"' + (ready ? '' : ' disabled') + '>' + svg(I.share) + 'Save or share</button></div>' +
+  box.innerHTML = '<div class="sendbox">' + est +
+    '<button class="btn block" data-act="pvEmail"' + (ready ? '' : ' disabled') + '>' + svg(I.share) + (ready ? 'Email or share' : 'Preparing PDF…') + '</button>' +
     (pv.rep.csv ? '<button class="link mt" style="display:block;margin-top:12px" data-act="pvCsv">Share as a spreadsheet (CSV)</button>' : '') +
     (billing && unsent.length && !pv.marked ? '<div class="toggle mt" style="border-top:1px solid var(--line-2);margin-top:12px;padding-top:12px"><div class="main small">' + plural(unsent.length, 'patient-day') + ' in this report ' + (unsent.length === 1 ? 'is' : 'are') + ' not marked as sent.</div><button class="btn sm soft" data-act="pvMark">Mark as sent</button></div>' : '') +
     (billing && pv.marked ? '<p class="note">Marked as sent to your secretary.</p>' : '') +
-    (SANDBOXED ? '<p class="note">This is the claude.ai preview, so Email PDF saves the file instead of opening Mail. On Denzil\u2019s phone it opens a Mail draft with the PDF attached.</p>' : '') + '</div>';
+    (SANDBOXED ? '<p class="note">This is the claude.ai preview, so this button saves the PDF instead. On Denzil\u2019s phone it opens the share sheet: choose Mail and a draft opens with the PDF attached and a short message filled in.</p>' : '') + '</div>';
 }
 async function shareFile(file, emailInfo) {
   if (SANDBOXED) {
@@ -1060,7 +1057,7 @@ function settingsHTML() {
     '<div class="panel"><span class="flabel">Add a hospital</span><div class="two"><input type="text" id="newHospName" placeholder="Hospital name"><input type="text" id="newHospProv" placeholder="Provider number" autocapitalize="characters"></div><button class="btn block mt" data-act="hospAdd">Add hospital</button></div>' +
     '<p class="note">Provider numbers are specific to each hospital, so each billing sheet prints the number for the hospital the patient was in that day. A hospital with patients can\u2019t be removed.</p></div>';
   s += sec('email', 'Report emails') + '<div class="card">' + inp('Secretary’s name', 'secretaryName', st.secretaryName, 'text', 'Used to greet them in emails') +
-    [['billing', 'Billing sheets go to'], ['fund', 'Health fund reports go to'], ['ecmo', 'ECMO record goes to'], ['cpd', 'CPD report goes to']].map(([k, l]) => '<div class="field"><label>' + l + '</label><input type="email" inputmode="email" data-in="setEmail" data-k="' + k + '" value="' + esc(st.emails[k] || '') + '" placeholder="name@example.com"></div>').join('') + '</div>';
+    '<p class="note">Reports are sent from the share sheet: tap Email or share on a report and choose Mail.</p></div>';
   s += sec('funds', 'Health funds') + '<div class="card"><div class="chips">' + st.funds.map((f, i) => '<button class="chip" data-act="fundDel" data-i="' + i + '" aria-label="Remove ' + esc(f) + '">' + esc(f) + ' ×</button>').join('') + '</div><div class="two mt"><input type="text" id="newFund" placeholder="Add a fund"><button class="btn ghost" data-act="fundAdd">Add</button></div><p class="note">The funds you use most move to the front automatically.</p></div>';
   s += sec('locs', 'CPD and ECMO locations') + '<div class="card"><div class="chips">' + st.locations.map((f, i) => '<button class="chip" data-act="locDel" data-i="' + i + '" aria-label="Remove ' + esc(f) + '">' + esc(f) + ' ×</button>').join('') + '</div><div class="two mt"><input type="text" id="newLocS" placeholder="Add a location"><button class="btn ghost" data-act="locAddS">Add</button></div></div>';
   s += sec('items', 'Billing items') + '<div class="card"><p>Fees default to the MBS schedule fee. Set your own rate for any item, hide items you never use, or add one that isn’t on the form.</p><button class="btn ghost block" data-act="itemsPage">Manage billing items</button></div>';
@@ -1069,13 +1066,13 @@ function settingsHTML() {
     '<div class="two">' + ECMO_TYPES.map((t) => '<div class="field"><label>' + esc(t.name) + '</label><input type="number" min="0" inputmode="numeric" data-in="ecmoT" data-k="' + t.id + '" value="' + esc(st.ecmoTargets[t.id]) + '"></div>').join('') + '</div><p class="note">Starting targets only. Set them to your unit’s credentialing requirements; 0 means no target.</p></div>';
   s += sec('cpd', 'CPD requirements') + '<div class="card" data-mod="cpd"><div class="two">' + [['total', 'Total hours a year'], ['ea', 'Educational activities'], ['rp', 'Reviewing performance'], ['mo', 'Measuring outcomes'], ['rpmo', 'Reviewing + measuring combined']].map(([k, l]) => '<div class="field"><label>' + l + '</label><input type="number" step="0.5" min="0" inputmode="decimal" data-in="cpdT" data-k="' + k + '" value="' + esc(st.cpdTarget[k]) + '"></div>').join('') + '</div>' +
     '<div class="two"><div class="field"><label>SHLR triennium starts</label><input type="number" data-in="shlr" data-k="0" value="' + st.shlrTriennium[0] + '"></div><div class="field"><label>SHLR triennium ends</label><input type="number" data-in="shlr" data-k="1" value="' + st.shlrTriennium[1] + '"></div></div><p class="note">Defaults follow the CICM CPD Program for 2026: 50 hours, at least 12.5 educational, 25 across reviewing performance and measuring outcomes (at least 5 each), a PDP, and one activity for each program-level requirement.</p></div>';
-  s += sec('ocr', 'Reading patient labels') + '<div class="card"><p>After you photograph a label, Gill‑Able reads the name, UR, health fund and referring doctor and fills them in for you to check. It runs on this phone and the photo never leaves it. Run the test once on Wi-Fi to download the reader (about 7 MB) so it also works offline.</p><div id="ocrTest"></div><button class="btn ghost block" data-act="ocrTest">Test the label reader</button></div>';
-  s += sec('install', 'Install on your phone') + '<div class="card"><ul class="cap-list"><li>iPhone: open Gill‑Able in Safari, tap Share, then Add to Home Screen.</li><li>Android: open in Chrome, tap the menu, then Add to Home screen.</li><li>Once installed, Gill‑Able works offline and opens like any other app.</li></ul></div>';
+  s += sec('ocr', 'Reading patient labels') + '<div class="card"><p>After you photograph a label, Caring Intensively reads the name, UR, health fund and referring doctor and fills them in for you to check. It runs on this phone and the photo never leaves it. Run the test once on Wi-Fi to download the reader (about 7 MB) so it also works offline.</p><div id="ocrTest"></div><button class="btn ghost block" data-act="ocrTest">Test the label reader</button></div>';
+  s += sec('install', 'Install on your phone') + '<div class="card"><ul class="cap-list"><li>iPhone: open Caring Intensively in Safari, tap Share, then Add to Home Screen.</li><li>Android: open in Chrome, tap the menu, then Add to Home screen.</li><li>Once installed, Caring Intensively works offline and opens like any other app.</li></ul></div>';
   s += sec('data', 'Your data') + '<div class="card"><p>Records and photos are stored only on this phone, in this browser. ' + (Store.ok ? 'Storage is working.' : '<b>Storage is unavailable here, so changes won’t be kept after you close this page.</b>') + '</p>' +
     '<div class="btnrow"><button class="btn ghost" data-act="backup">Back up now</button><button class="btn ghost" data-act="restore">Restore a backup</button></div>' +
     (st.demo ? '<button class="btn ghost block mt" data-act="clearDemo">Clear sample data</button>' : '<button class="btn ghost block mt" data-act="loadDemo">Load 12 months of sample data</button>') +
     '<button class="btn danger block mt" data-act="wipe">Delete all data</button></div>';
-  s += '<p class="note mt2">Gill‑Able ' + APP_VERSION + '. Billing criteria summarised from MBS Online (schedule from 1 July 2026); CPD rules from the CICM CPD Program 2026. Check MBS Online and the CICM portal for the authoritative versions.</p>';
+  s += '<p class="note mt2">Caring Intensively ' + APP_VERSION + '. Billing criteria summarised from MBS Online (schedule from 1 July 2026); CPD rules from the CICM CPD Program 2026. Check MBS Online and the CICM portal for the authoritative versions.</p>';
   return s;
 }
 function openItemsPage() {
@@ -1100,7 +1097,7 @@ async function doBackup() {
   for (const k of await Store.keys('photos')) { const b = await Store.get('photos', k); if (b) photos[k] = b instanceof Blob ? await blobToDataURL(b) : b; }
   S.settings.lastBackup = new Date().toISOString();
   const data = { app: 'gills', version: 1, exported: S.settings.lastBackup, state: S, photos };
-  const file = new File([JSON.stringify(data)], 'Gill-Able backup ' + fmtDMY(today()).replace(/\//g, '-') + '.json', { type: 'application/json' });
+  const file = new File([JSON.stringify(data)], 'Caring Intensively backup ' + fmtDMY(today()).replace(/\//g, '-') + '.json', { type: 'application/json' });
   const r = await shareFile(file);
   if (r === 'shared' || r === 'downloaded' || r === 'preview-saved') { changed(); toast('Backup saved'); }
   else if (r !== 'blocked') S.settings.lastBackup = null;
@@ -1108,7 +1105,7 @@ async function doBackup() {
 async function doRestore(file) {
   try {
     const data = JSON.parse(await file.text());
-    if (data.app !== 'gills' || !data.state) throw new Error('That file isn’t a Gill‑Able backup.');
+    if (data.app !== 'gills' || !data.state) throw new Error('That file isn’t a Caring Intensively backup.');
     const ok = await confirmSheet({ title: 'Restore this backup?', text: 'This replaces everything on this phone with the backup from ' + fmtDate(String(data.exported || '').slice(0, 10), { year: true }) + '.', ok: 'Replace and restore', danger: true });
     if (!ok) return;
     await Store.clear('photos');
@@ -1122,12 +1119,19 @@ function loadDemo() {
   const d = makeDemoData();
   S.patients = d.patients; S.days = d.days; S.ecmo = d.ecmo; S.cpd = d.cpd;
   S.settings.locations = Array.from(new Set(d.locations.concat(S.settings.locations)));
-  S.settings.demo = true; S.settings.onboarded = true;
+  // Sample hospitals the user doesn't already have; flagged so Clear sample data removes them again
+  d.hospitals.forEach((h) => { if (!S.settings.hospitals.some((x) => x.id === h.id || x.name === h.name)) S.settings.hospitals.push(Object.assign({}, h, { demo: true })); });
+  const byName = (n) => (S.settings.hospitals.find((x) => x.name === n) || {}).id;
+  S.days.forEach((x) => { if (x.loc && !S.settings.hospitals.some((h) => h.id === x.loc.hospital)) x.loc.hospital = byName(d.hospitals.find((h) => h.id === x.loc.hospital).name); });
+  S.patients.forEach((p) => { if (!S.settings.hospitals.some((h) => h.id === p.hospital)) p.hospital = byName(d.hospitals.find((h) => h.id === p.hospital).name); });
+  S.settings.demo = true; S.settings.onboarded = true; S.settings.demoVersion = DEMO_VERSION;
   S.settings.emails = Object.assign({}, S.settings.emails);
 }
 async function clearAll(keepSettings = true) {
   S.patients = []; S.days = []; S.ecmo = []; S.cpd = [];
   S.settings.demo = false;
+  S.settings.hospitals = S.settings.hospitals.filter((h) => !h.demo);
+  if (!S.settings.hospitals.find((h) => h.id === S.settings.defaultHospital)) S.settings.defaultHospital = (S.settings.hospitals[0] || {}).id || '';
   if (!keepSettings) S.settings = Object.assign(defaultSettings(), { onboarded: false });
   await Store.clear('photos');
   Object.keys(photoCache).forEach((k) => delete photoCache[k]);
@@ -1208,7 +1212,6 @@ const ACT = {
   repPatientGo: (el) => { closeSheet(); openReport('patient', { pid: el.dataset.pid, a: el.dataset.a || null, b: el.dataset.b || null }); },
   repPick: (el) => { UI.rep.pid = el.dataset.pid || ''; UI.rep.pDay = ''; UI.rep.pA = ''; UI.rep.pB = ''; render(); },
   repDayStep: (el) => { UI.rep.billDay = addDays(UI.rep.billDay, Number(el.dataset.v)); render(); },
-  repDay: () => { const d = UI.rep.billDay; const days = S.days.filter((x) => x.date === d); if (!days.length) { toast('No billing recorded on ' + fmtDate(d)); return; } openReport('secretary', { days, range: [d, d], title: 'Billing for ' + fmtDate(d, { year: true }) }); },
   repPatient: () => {
     const R = UI.rep; const pd = daysFor(R.pid); if (!pd.length) return;
     let a = null, b = null;
@@ -1276,8 +1279,14 @@ const ACT = {
   repSet: (el) => { let v = el.dataset.v; if (el.dataset.num) v = Number(v); UI.rep[el.dataset.k] = v; render(); },
   repFlip: (el) => { UI.rep[el.dataset.k] = !UI.rep[el.dataset.k]; render(); },
   repUnsent: () => { const days = S.days.filter((d) => !d.sent); if (!days.length) { toast('Everything has been sent'); return; } openReport('secretary', { days, title: 'Billing for processing' }); },
-  repBill: () => { const R = UI.rep; const [a, b] = R.billRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.billRange); const days = S.days.filter((d) => d.date >= a && d.date <= b); if (!days.length) { toast('No billing between those dates'); return; } openReport('secretary', { days, range: [a, b], title: 'Billing for processing' }); },
-  repFund: () => { const R = UI.rep; const [a, b] = R.fundRange === 'custom' ? [R.billA, R.billB] : rangeFor(R.fundRange); openReport('fund', { fund: R.fund, a, b, sheets: R.fundSheets }); },
+  repBill: () => {
+    const R = UI.rep; const F = repFiltered(R);
+    if (!F.days.length) { toast('Nothing matches these filters'); return; }
+    const h = R.fHosp ? hospitalById(R.fHosp) : null;
+    const title = R.fFund ? R.fFund + ' billing' : (R.billRange === 'day' ? 'Billing for ' + fmtDate(R.billDay, { year: true }) : 'Billing for processing');
+    const filters = [h ? h.name : '', R.fFund, R.fSent === 'unsent' ? 'Not yet sent' : R.fSent === 'sent' ? 'Already sent' : ''].filter(Boolean);
+    openReport('secretary', { days: F.days, range: [F.a, F.b], title, filters, fund: R.fFund, hospital: h ? h.name : '', fileLabel: [R.fFund, h ? h.name : ''].filter(Boolean).join(' ') });
+  },
   openReport: (el) => {
     const kind = el.dataset.kind;
     if (kind === 'ecmo') { const m = UI.rep.ecmoMode; const [a, b] = m === 'custom' ? [UI.rep.ecmoA, UI.rep.ecmoB] : m === 'year' ? rangeFor('year') : m === 'all' ? [S.ecmo.map((e) => e.date).sort()[0] || today(), today()] : ecmoRange(); openReport('ecmo', { a, b }); }
@@ -1285,20 +1294,15 @@ const ACT = {
   },
   pvEmail: async () => {
     const pg = pageStack[pageStack.length - 1]; const pv = pg.pv; if (!pv.pdf) return;
-    const to = (pv.to || '').trim();
-    if (to) { S.settings.emails[emailKeyFor(pv.kind)] = to; save(); }
     const em = composeEmail(pv.kind, pv.rep);
-    if (to && navigator.clipboard && navigator.clipboard.writeText && !SANDBOXED) navigator.clipboard.writeText(to).catch(() => { });
     const file = new File([pv.pdf], pv.rep.filename + '.pdf', { type: 'application/pdf' });
     const r = await shareFile(file, em);
-    if (r === 'shared') toast(to ? 'Pick Mail, then paste ' + to + ' into To' : 'Report shared', { ms: 5000 });
-    if (r === 'preview-saved') toast('PDF saved. On the phone, this button opens Mail with the PDF attached.', { ms: 6000 });
-    if (r === 'downloaded') { toast('PDF saved. Your mail app will open; attach the PDF from Downloads.', { ms: 6000 }); setTimeout(() => { location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(em.subject) + '&body=' + encodeURIComponent(em.body); }, 600); }
-    if ((r === 'shared' || r === 'downloaded') && ['secretary', 'patient', 'fund'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
+    if (r === 'preview-saved') toast('PDF saved. On the phone, this button opens the share sheet so you can email it.', { ms: 6000 });
+    if (r === 'downloaded') toast('PDF saved to your downloads. Attach it to an email to send it.', { ms: 6000 });
+    if (r === 'shared' && ['secretary', 'patient'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
       setTimeout(async () => { const ok = await confirmSheet({ title: 'Mark as sent?', text: 'Mark ' + plural(pv.rep.days.filter((d) => !d.sent).length, 'patient-day') + ' in this report as sent to your secretary?', ok: 'Mark as sent' }); if (ok) ACT.pvMark(); }, 800);
     }
   },
-  pvShare: async () => { const pv = pageStack[pageStack.length - 1].pv; if (!pv.pdf) return; await shareFile(new File([pv.pdf], pv.rep.filename + '.pdf', { type: 'application/pdf' })); },
   pvCsv: async () => { const pv = pageStack[pageStack.length - 1].pv; await shareFile(new File([pv.rep.csv], pv.rep.filename + '.csv', { type: 'text/csv' })); },
   pvMark: () => { const pg = pageStack.find((p) => p.pv); if (!pg) return; const now = new Date().toISOString(); (pg.pv.rep.days || []).forEach((d) => { if (!d.sent) d.sent = now; }); pg.pv.marked = true; save(); renderSendBox(pg); render(); toast('Marked as sent'); },
   hospAdd: () => { const h = addHospital($('#newHospName').value, $('#newHospProv').value); if (h) changed(); },
@@ -1335,7 +1339,6 @@ const ACT = {
 };
 const IN = {
   set: (el) => { S.settings[el.dataset.k] = el.value; save(); },
-  setEmail: (el) => { S.settings.emails[el.dataset.k] = el.value.trim(); save(); },
   hosp: (el) => { S.settings.hospitals[Number(el.dataset.i)][el.dataset.k] = el.value; save(); },
   f: (el) => { const sh = curSheet(); if (!sh) return; sh.st[el.dataset.k] = el.value; if (sh.st.ocr && sh.st.ocr.filled && sh.st.ocr.filled[el.dataset.k]) { delete sh.st.ocr.filled[el.dataset.k]; el.classList.remove('auto'); } },
   billLoc: (el) => { curSheet().st.loc[el.dataset.k] = el.value; },
@@ -1347,7 +1350,6 @@ const IN = {
   cpdQ: (el) => { UI.cpdQ = el.value; $('#cpdResults').innerHTML = cpdResults(); },
   rep: (el) => { UI.rep[el.dataset.k] = el.value; },
   repPQ: (el) => { UI.rep.pq = el.value; const box = $('#repPatients'); if (box) { box.innerHTML = repPatientResults(); hydrate(box); } },
-  pvTo: (el) => { const pg = pageStack.find((p) => p.pv); if (pg) pg.pv.to = el.value; },
   ecmoT: (el) => { S.settings.ecmoTargets[el.dataset.k] = Number(el.value) || 0; save(); },
   ecmoSince: (el) => { S.settings.ecmoPeriod.since = el.value; save(); },
   cpdT: (el) => { S.settings.cpdTarget[el.dataset.k] = Number(el.value) || 0; save(); },
@@ -1359,7 +1361,7 @@ const CH = {
   histStatus: (el) => { UI.hist.status = el.value; render(); },
   billDate: (el) => { if (!el.value) return; const st = curSheet().st; st.date = el.value; st.load(); curSheet().update(false); },
   billTime: (el) => { curSheet().st.times[el.dataset.k] = el.value; curSheet().update(); },
-  repFund: (el) => { UI.rep.fund = el.value; },
+  repFFund: (el) => { UI.rep.fFund = el.value; render(); },
   repDay: (el) => { if (el.value) { UI.rep.billDay = el.value; render(); } },
   repPDay: (el) => { UI.rep.pDay = el.value; },
   ecmoPeriod: (el) => { S.settings.ecmoPeriod.mode = el.value; if (el.value === 'since' && !S.settings.ecmoPeriod.since) S.settings.ecmoPeriod.since = addDays(today(), -364); changed(); }
@@ -1395,6 +1397,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   const h = location.hash.slice(1);
   if (TABS.find((t) => t[0] === h)) UI.tab = h;
   if (!S.settings.onboarded && (SANDBOXED || h === 'demo')) { loadDemo(); save(); }
+  // Sample data made by an older version of the generator is replaced with the current one
+  else if (S.settings.demo && S.settings.demoVersion !== DEMO_VERSION) { await clearAll(); loadDemo(); save(); }
   render();
   if ('serviceWorker' in navigator && !SANDBOXED && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) { } }
 })();
