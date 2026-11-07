@@ -523,14 +523,30 @@ function buildEcmoReport(a, b) {
   const cann = list.filter((e) => e.type === 'cannulation');
   if (cann.length) {
     doc.h2('Cannulations');
-    const by = (k) => { const c = {}; cann.forEach((e) => { const v = e[k] || 'Not recorded'; c[v] = (c[v] || 0) + 1; }); return Object.entries(c).sort((p, q) => q[1] - p[1]).map(([k2, v]) => k2 + ' ' + v).join(', '); };
-    doc.kv([['By mode', by('mode')], ['By role', by('role')], ['By configuration', by('config')], ['Complications', String(cann.filter((e) => e.complication && e.complication !== 'None').length)]], 2);
+    // Mode by role, so the numbers can be read straight across
+    const NR = 'Not recorded';
+    const vals = (k) => { const seen = new Set(cann.map((e) => e[k] || NR)); return (ECMO_OPTS[k] || []).filter((v) => seen.has(v)).concat(seen.has(NR) ? [NR] : []).concat(Array.from(seen).filter((v) => v !== NR && !(ECMO_OPTS[k] || []).includes(v))); };
+    const modes = vals('mode'), roles = vals('role');
+    const isComp = (e) => e.complication && e.complication !== 'None';
+    const cnt = (f) => cann.filter(f).length;
+    const rw = 0.52 / Math.max(roles.length, 1);
+    doc.table([{ label: 'Mode', w: 0.16 }].concat(roles.map((r) => ({ label: r, w: rw, align: 'center' }))).concat([{ label: 'Total', w: 0.14, align: 'center' }, { label: 'Complications', w: 0.18, align: 'center' }]),
+      modes.map((m) => [{ t: m, bold: true }].concat(roles.map((r) => String(cnt((e) => (e.mode || NR) === m && (e.role || NR) === r) || '–'))).concat([{ t: String(cnt((e) => (e.mode || NR) === m)), bold: true }, String(cnt((e) => (e.mode || NR) === m && isComp(e)) || '–')]))
+        .concat(modes.length > 1 ? [[{ t: 'Total', bold: true }].concat(roles.map((r) => ({ t: String(cnt((e) => (e.role || NR) === r)), bold: true }))).concat([{ t: String(cann.length), bold: true }, { t: String(cnt(isComp)), bold: true }])] : []),
+      { size: 16 });
+    doc.gap(6);
+    setFont(doc.x, 19, 700); doc.x.fillStyle = INK; doc.room(80); doc.y += 22; doc.x.fillText('Cannulation log', doc.M, doc.y); doc.y += 12;
+    const hasNote = cann.some((e) => e.note);
+    const cols = [{ label: 'Date', w: 0.12 }, { label: 'Mode', w: 0.08 }, { label: 'Configuration', w: hasNote ? 0.14 : 0.17 }, { label: 'Role', w: 0.13 }, { label: 'Imaging', w: hasNote ? 0.11 : 0.13 }, { label: 'Setting', w: hasNote ? 0.12 : 0.15 }, { label: 'Complication', w: hasNote ? 0.12 : 0.14 }]
+      .concat(hasNote ? [{ label: 'Notes', w: 0.12 }] : []).concat([{ label: 'Ref', w: 0.06 + (hasNote ? 0 : 0.02) }]);
+    doc.table(cols, cann.map((e) => [fmtDMY(e.date), e.mode || '–', e.config || '–', e.role || '–', (e.imaging || []).join(', ') || '–', [e.setting, e.location].filter(Boolean).join('\n') || '–', isComp(e) ? { t: e.complication, color: '#b4541a', bold: true } : (e.complication || '–')]
+      .concat(hasNote ? [e.note || ''] : []).concat([e.ref || ''])), { size: 15 });
   }
   const hrs = sum(list.filter((e) => e.hours), (e) => e.hours);
   if (hrs) doc.para('Total hours recorded against meetings, rounds, education and retrievals: ' + fmtH(hrs) + ' h.');
-  doc.h2('Activity log');
+  doc.h2(cann.length ? 'Other ECMO activity' : 'Activity log');
   doc.table([{ label: 'Date', w: 0.13 }, { label: 'Activity', w: 0.18 }, { label: 'Details', w: 0.43 }, { label: 'Location', w: 0.16 }, { label: 'Ref', w: 0.1 }],
-    list.map((e) => [fmtDMY(e.date), (ECMO_TYPES.find((t) => t.id === e.type) || {}).name || e.type, ecmoDetail(e), e.location || '', e.ref || '']), { size: 15 });
+    list.filter((e) => e.type !== 'cannulation').map((e) => [fmtDMY(e.date), (ECMO_TYPES.find((t) => t.id === e.type) || {}).name || e.type, ecmoDetail(e), e.location || '', e.ref || '']), { size: 15 });
   doc.signature(['Clinician signature and date', 'Verified by (ECMO director / head of unit)', 'Name of verifier', 'Date']);
   const pages = doc.finish('ECMO practice record for ' + S.settings.name + ', prepared with Caring Intensively.');
   const csvRows = [['Date', 'Activity', 'Details', 'Location', 'Reference']].concat(list.map((e) => [fmtDMY(e.date), (ECMO_TYPES.find((t) => t.id === e.type) || {}).name, ecmoDetail(e), e.location || '', e.ref || '']));
