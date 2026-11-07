@@ -67,7 +67,7 @@ async def main():
             # Save PDF via download fallback
             try:
                 async with pg.expect_download(timeout=8000) as dl:
-                    await pg.click('.page [data-act="pvShare"]')
+                    await pg.click('.page [data-act="pvEmail"]')
                 d = await dl.value
                 path = f'tests/shots/{kind}.pdf'; await d.save_as(path); print(kind, 'pdf', os.path.getsize(path))
             except Exception as e: print(kind, 'download failed', e)

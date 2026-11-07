@@ -56,7 +56,7 @@ async def main():
         await pg.click('.page [data-act="patientReport"]'); await pg.wait_for_timeout(300); await pg.click('.sheet [data-act="repPatientGo"] >> nth=0'); await pg.wait_for_timeout(2500)
         n = await pg.evaluate('document.querySelectorAll(".pv-pages canvas").length'); print('report pages', n)
         async with pg.expect_download() as dl:
-            await pg.click('.page [data-act="pvShare"]')
+            await pg.click('.page [data-act="pvEmail"]')
         d = await dl.value; await d.save_as('tests/shots/moved.pdf')
         print('\n'.join(errs) or 'no console errors')
         await b.close()

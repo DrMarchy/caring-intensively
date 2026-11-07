@@ -16,7 +16,7 @@ async def main():
             title = await top.locator('h1').text_content()
             meta = await top.locator('h1 + p').text_content()
             async with pg.expect_download() as dl:
-                await top.locator('[data-act="pvShare"]').click()
+                await top.locator('[data-act="pvEmail"]').click()
             d = await dl.value; print(name, '|', title, '|', meta, '| pages', n, '| file', d.suggested_filename)
             await d.save_as('tests/shots/' + name + '.pdf')
             await pg.screenshot(path='tests/shots/b_' + name + '.png')

@@ -2917,7 +2917,6 @@ function openPatientReportChooser(pid) {
     })
   });
 }
-function emailKeyFor(kind) { return { secretary: 'billing', fund: 'fund', ecmo: 'ecmo', cpd: 'cpd', patient: 'billing' }[kind] || 'billing'; }
 function composeEmail(kind, rep) {
   const nm = S.settings.name || '';
   const first = nm.replace(/^Dr\.?\s+/i, '').split(' ')[0];
@@ -2925,14 +2924,14 @@ function composeEmail(kind, rep) {
   const body = {
     secretary: 'Please find attached billing for processing: ' + (rep.meta || '') + '.',
     patient: 'Please find attached the billing sheet for ' + (rep.patientName || '') + (rep.meta ? ', ' + rep.meta : '') + '.',
-    fund: 'Please find attached ' + rep.title.toLowerCase() + ' for ' + (rep.meta || '') + '.',
+    fund: 'Please find attached the ' + rep.title + ' report for ' + (rep.meta || '') + ', set out by hospital.',
     ecmo: 'Please find attached my ECMO practice record for ' + (rep.meta || '') + ', for credentialing and accreditation.',
     cpd: 'Please find attached my CPD record for ' + (rep.meta || '') + ' under the CICM CPD Program.'
   }[kind] || 'Please find the attached report.';
-  return { subject: rep.title + (rep.meta ? ', ' + rep.meta : ''), body: hi + body + '\n\nThanks,\n' + (first || nm) };
+  return { subject: rep.title + (rep.meta && !rep.title.includes(rep.meta) ? ', ' + rep.meta : ''), body: hi + body + '\n\nThanks,\n' + (first || nm) };
 }
 async function openReport(kind, params = {}) {
-  const pv = { kind, loading: true, rep: null, pdf: null, to: S.settings.emails[emailKeyFor(kind)] || '', shared: false, marked: false };
+  const pv = { kind, loading: true, rep: null, pdf: null, shared: false, marked: false };
   const pg = openPage(null, { mod: kind === 'ecmo' ? 'ecmo' : kind === 'cpd' ? 'cpd' : 'bill', static: true });
   pg.pv = pv;
   pg.el.innerHTML = '<div class="in">' + pageHead('Close', 'Report preview') + '<div class="empty"><b>Preparing report…</b>This takes a moment for larger reports.</div></div>';
@@ -2969,19 +2968,18 @@ function renderSendBox(pg) {
   const ready = !!pv.pdf;
   const unsent = (pv.rep.days || []).filter((d) => !d.sent);
   const billing = ['secretary', 'patient', 'fund'].includes(pv.kind);
-  const toLabel = { secretary: 'Secretary’s email', patient: 'Secretary’s email', fund: 'Send to', ecmo: 'Send to (e.g. ECMO director or credentialing committee)', cpd: 'Send to (CICM or yourself)' }[pv.kind];
   let est = '';
   if (billing && (pv.rep.days || []).length) {
     const days = pv.rep.days; const total = sum(days, dayFee); const items = sum(days, (d) => dayAllCodes(d).length);
     const custom = Object.keys(S.settings.itemFees || {}).some((c) => userFee(c) != null);
     est = '<div class="estbill"><div class="small muted">Estimated billing</div><div class="v">' + fmtMoney(total) + '</div><div class="small muted">' + plural(items, 'item') + ' across ' + plural(days.length, 'patient-day') + ', at ' + (custom ? 'MBS schedule rates with your own rates where set' : 'MBS schedule rates') + '. An estimate only: no multiple-operation rule or gap applied.</div></div>';
   }
-  box.innerHTML = '<div class="sendbox">' + est + '<div class="field"><label for="pv-to">' + esc(toLabel) + '</label><input id="pv-to" type="email" data-in="pvTo" value="' + esc(pv.to) + '" placeholder="name@example.com" autocomplete="email" inputmode="email"><div class="hint">Saved for next time. Mail opens with the PDF attached; the address is copied so you can paste it into To.</div></div>' +
-    '<div class="btnrow"><button class="btn" data-act="pvEmail"' + (ready ? '' : ' disabled') + '>' + svg(I.mail) + (ready ? 'Email PDF' : 'Preparing PDF…') + '</button><button class="btn ghost" data-act="pvShare"' + (ready ? '' : ' disabled') + '>' + svg(I.share) + 'Save or share</button></div>' +
+  box.innerHTML = '<div class="sendbox">' + est +
+    '<button class="btn block" data-act="pvEmail"' + (ready ? '' : ' disabled') + '>' + svg(I.share) + (ready ? 'Email or share' : 'Preparing PDF…') + '</button>' +
     (pv.rep.csv ? '<button class="link mt" style="display:block;margin-top:12px" data-act="pvCsv">Share as a spreadsheet (CSV)</button>' : '') +
     (billing && unsent.length && !pv.marked ? '<div class="toggle mt" style="border-top:1px solid var(--line-2);margin-top:12px;padding-top:12px"><div class="main small">' + plural(unsent.length, 'patient-day') + ' in this report ' + (unsent.length === 1 ? 'is' : 'are') + ' not marked as sent.</div><button class="btn sm soft" data-act="pvMark">Mark as sent</button></div>' : '') +
     (billing && pv.marked ? '<p class="note">Marked as sent to your secretary.</p>' : '') +
-    (SANDBOXED ? '<p class="note">This is the claude.ai preview, so Email PDF saves the file instead of opening Mail. On Denzil\u2019s phone it opens a Mail draft with the PDF attached.</p>' : '') + '</div>';
+    (SANDBOXED ? '<p class="note">This is the claude.ai preview, so this button saves the PDF instead. On Denzil\u2019s phone it opens the share sheet: choose Mail and a draft opens with the PDF attached and a short message filled in.</p>' : '') + '</div>';
 }
 async function shareFile(file, emailInfo) {
   if (SANDBOXED) {
@@ -3023,7 +3021,7 @@ function settingsHTML() {
     '<div class="panel"><span class="flabel">Add a hospital</span><div class="two"><input type="text" id="newHospName" placeholder="Hospital name"><input type="text" id="newHospProv" placeholder="Provider number" autocapitalize="characters"></div><button class="btn block mt" data-act="hospAdd">Add hospital</button></div>' +
     '<p class="note">Provider numbers are specific to each hospital, so each billing sheet prints the number for the hospital the patient was in that day. A hospital with patients can\u2019t be removed.</p></div>';
   s += sec('email', 'Report emails') + '<div class="card">' + inp('Secretary’s name', 'secretaryName', st.secretaryName, 'text', 'Used to greet them in emails') +
-    [['billing', 'Billing sheets go to'], ['fund', 'Health fund reports go to'], ['ecmo', 'ECMO record goes to'], ['cpd', 'CPD report goes to']].map(([k, l]) => '<div class="field"><label>' + l + '</label><input type="email" inputmode="email" data-in="setEmail" data-k="' + k + '" value="' + esc(st.emails[k] || '') + '" placeholder="name@example.com"></div>').join('') + '</div>';
+    '<p class="note">Reports are sent from the share sheet: tap Email or share on a report and choose Mail.</p></div>';
   s += sec('funds', 'Health funds') + '<div class="card"><div class="chips">' + st.funds.map((f, i) => '<button class="chip" data-act="fundDel" data-i="' + i + '" aria-label="Remove ' + esc(f) + '">' + esc(f) + ' ×</button>').join('') + '</div><div class="two mt"><input type="text" id="newFund" placeholder="Add a fund"><button class="btn ghost" data-act="fundAdd">Add</button></div><p class="note">The funds you use most move to the front automatically.</p></div>';
   s += sec('locs', 'CPD and ECMO locations') + '<div class="card"><div class="chips">' + st.locations.map((f, i) => '<button class="chip" data-act="locDel" data-i="' + i + '" aria-label="Remove ' + esc(f) + '">' + esc(f) + ' ×</button>').join('') + '</div><div class="two mt"><input type="text" id="newLocS" placeholder="Add a location"><button class="btn ghost" data-act="locAddS">Add</button></div></div>';
   s += sec('items', 'Billing items') + '<div class="card"><p>Fees default to the MBS schedule fee. Set your own rate for any item, hide items you never use, or add one that isn’t on the form.</p><button class="btn ghost block" data-act="itemsPage">Manage billing items</button></div>';
@@ -3248,20 +3246,15 @@ const ACT = {
   },
   pvEmail: async () => {
     const pg = pageStack[pageStack.length - 1]; const pv = pg.pv; if (!pv.pdf) return;
-    const to = (pv.to || '').trim();
-    if (to) { S.settings.emails[emailKeyFor(pv.kind)] = to; save(); }
     const em = composeEmail(pv.kind, pv.rep);
-    if (to && navigator.clipboard && navigator.clipboard.writeText && !SANDBOXED) navigator.clipboard.writeText(to).catch(() => { });
     const file = new File([pv.pdf], pv.rep.filename + '.pdf', { type: 'application/pdf' });
     const r = await shareFile(file, em);
-    if (r === 'shared') toast(to ? 'Pick Mail, then paste ' + to + ' into To' : 'Report shared', { ms: 5000 });
-    if (r === 'preview-saved') toast('PDF saved. On the phone, this button opens Mail with the PDF attached.', { ms: 6000 });
-    if (r === 'downloaded') { toast('PDF saved. Your mail app will open; attach the PDF from Downloads.', { ms: 6000 }); setTimeout(() => { location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(em.subject) + '&body=' + encodeURIComponent(em.body); }, 600); }
-    if ((r === 'shared' || r === 'downloaded') && ['secretary', 'patient', 'fund'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
+    if (r === 'preview-saved') toast('PDF saved. On the phone, this button opens the share sheet so you can email it.', { ms: 6000 });
+    if (r === 'downloaded') toast('PDF saved to your downloads. Attach it to an email to send it.', { ms: 6000 });
+    if (r === 'shared' && ['secretary', 'patient', 'fund'].includes(pv.kind) && (pv.rep.days || []).some((d) => !d.sent)) {
       setTimeout(async () => { const ok = await confirmSheet({ title: 'Mark as sent?', text: 'Mark ' + plural(pv.rep.days.filter((d) => !d.sent).length, 'patient-day') + ' in this report as sent to your secretary?', ok: 'Mark as sent' }); if (ok) ACT.pvMark(); }, 800);
     }
   },
-  pvShare: async () => { const pv = pageStack[pageStack.length - 1].pv; if (!pv.pdf) return; await shareFile(new File([pv.pdf], pv.rep.filename + '.pdf', { type: 'application/pdf' })); },
   pvCsv: async () => { const pv = pageStack[pageStack.length - 1].pv; await shareFile(new File([pv.rep.csv], pv.rep.filename + '.csv', { type: 'text/csv' })); },
   pvMark: () => { const pg = pageStack.find((p) => p.pv); if (!pg) return; const now = new Date().toISOString(); (pg.pv.rep.days || []).forEach((d) => { if (!d.sent) d.sent = now; }); pg.pv.marked = true; save(); renderSendBox(pg); render(); toast('Marked as sent'); },
   hospAdd: () => { const h = addHospital($('#newHospName').value, $('#newHospProv').value); if (h) changed(); },
@@ -3298,7 +3291,6 @@ const ACT = {
 };
 const IN = {
   set: (el) => { S.settings[el.dataset.k] = el.value; save(); },
-  setEmail: (el) => { S.settings.emails[el.dataset.k] = el.value.trim(); save(); },
   hosp: (el) => { S.settings.hospitals[Number(el.dataset.i)][el.dataset.k] = el.value; save(); },
   f: (el) => { const sh = curSheet(); if (!sh) return; sh.st[el.dataset.k] = el.value; if (sh.st.ocr && sh.st.ocr.filled && sh.st.ocr.filled[el.dataset.k]) { delete sh.st.ocr.filled[el.dataset.k]; el.classList.remove('auto'); } },
   billLoc: (el) => { curSheet().st.loc[el.dataset.k] = el.value; },
@@ -3310,7 +3302,6 @@ const IN = {
   cpdQ: (el) => { UI.cpdQ = el.value; $('#cpdResults').innerHTML = cpdResults(); },
   rep: (el) => { UI.rep[el.dataset.k] = el.value; },
   repPQ: (el) => { UI.rep.pq = el.value; const box = $('#repPatients'); if (box) { box.innerHTML = repPatientResults(); hydrate(box); } },
-  pvTo: (el) => { const pg = pageStack.find((p) => p.pv); if (pg) pg.pv.to = el.value; },
   ecmoT: (el) => { S.settings.ecmoTargets[el.dataset.k] = Number(el.value) || 0; save(); },
   ecmoSince: (el) => { S.settings.ecmoPeriod.since = el.value; save(); },
   cpdT: (el) => { S.settings.cpdTarget[el.dataset.k] = Number(el.value) || 0; save(); },
